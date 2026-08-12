@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0a5c4a">
+  <title>NyumbaPap - Find a home in Kenya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">N</span><span>Nyumba<span>Pap</span></span></a>
+    <nav aria-label="Main navigation">
+      <a href="#homes">Find a home</a><a href="#how">How it works</a><a href="#safety">Safety</a>
+    </nav>
+    <div class="header-actions"><button class="text-button" data-open="signin">Sign in</button><button class="button small" data-open="list">List a property</button></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Verified rentals across Kenya</div>
+        <h1>Your next home is <em>closer</em> than you think.</h1>
+        <p>Discover genuinely vacant homes, compare rent and amenities, then unlock the exact location and landlord contact securely.</p>
+        <div class="trust-row"><span>Verified listings</span><span>M-Pesa payments</span><span>No hidden agent fees</span></div>
+      </div>
+      <form class="search-panel" id="searchForm">
+        <label>Where do you want to live?<select id="townFilter"><option value="all">All towns</option><option>Nairobi</option><option>Kiambu</option><option>Mombasa</option><option>Nakuru</option><option>Kisumu</option></select></label>
+        <label>House type<select id="typeFilter"><option value="all">Any house type</option><option>Bedsitter</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option></select></label>
+        <label>Maximum monthly rent<select id="priceFilter"><option value="999999">Any budget</option><option value="15000">Up to KSh 15,000</option><option value="25000">Up to KSh 25,000</option><option value="40000">Up to KSh 40,000</option><option value="70000">Up to KSh 70,000</option></select></label>
+        <button class="button search" type="submit">Search homes <span></span></button>
+      </form>
+    </section>
+
+    <section class="stats" aria-label="Marketplace statistics">
+      <div><strong>1,240+</strong><span>vacant homes</span></div><div><strong>18</strong><span>towns covered</span></div><div><strong>92%</strong><span>verified landlords</span></div><div><strong>&lt; 2 hrs</strong><span>average response</span></div>
+    </section>
+
+    <section class="section" id="homes">
+      <div class="section-heading"><div><span class="eyebrow">Available now</span><h2>Homes worth moving for</h2></div><p id="resultCount">6 verified homes</p></div>
+      <div class="chips" id="quickFilters"><button class="chip active" data-type="all">All homes</button><button class="chip" data-type="Bedsitter">Bedsitters</button><button class="chip" data-type="1 Bedroom">1 bedroom</button><button class="chip" data-type="2 Bedroom">2 bedroom</button><button class="chip" data-type="3 Bedroom">3 bedroom</button></div>
+      <div class="property-grid" id="propertyGrid"></div>
+      <div class="empty" id="emptyState" hidden><h3>No exact matches yet</h3><p>Try a different town, home type, or price range.</p></div>
+    </section>
+
+    <section class="how section" id="how">
+      <div class="how-copy"><span class="eyebrow light">Simple and transparent</span><h2>From searching to viewing in three steps.</h2><p>We keep personal contact details private until a tenant is genuinely interested. A small one-time unlock fee reduces spam and fake enquiries.</p><button class="button light" data-scroll="homes">Explore homes</button></div>
+      <div class="steps"><article><b>01</b><div><h3>Find your match</h3><p>Filter verified vacancies by location, home type, rent, and amenities.</p></div></article><article><b>02</b><div><h3>Unlock securely</h3><p>Pay KSh 100 through M-Pesa to reveal the precise location and owner contact.</p></div></article><article><b>03</b><div><h3>View and decide</h3><p>Arrange a visit directly. Never pay a deposit before seeing the home.</p></div></article></div>
+    </section>
+
+    <section class="landlord section"><div><span class="eyebrow">For property owners</span><h2>Fill your vacancy faster.</h2><p>Reach serious tenants, manage enquiries, and pay only a small publishing fee. Your first draft listing is free.</p><button class="button" data-open="list">List your property</button></div><div class="owner-card"><div class="owner-top"><span>Owner dashboard</span><span class="status">Live</span></div><strong>3 active listings</strong><div class="mini-bars"><i style="--w:82%"></i><i style="--w:58%"></i><i style="--w:72%"></i></div><div class="owner-metrics"><span><b>186</b> views</span><span><b>24</b> unlocks</span><span><b>8</b> visits</span></div></div></section>
+
+    <section class="safety section" id="safety"><span class="shield">Yes</span><div><span class="eyebrow">Move with confidence</span><h2>Safety is built into every listing.</h2><p>Identity checks, property-document review, vacancy confirmation, user reports, and moderated contact help keep the marketplace trustworthy.</p></div><button class="outline-button" data-open="safety">See our safety rules</button></section>
+  </main>
+
+  <footer><a class="brand inverse" href="#"><span class="brand-mark">N</span><span>Nyumba<span>Pap</span></span></a><p>Helping Kenyans find better homes, faster.</p><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Help</a></div><small>(c) 2026 NyumbaPap. Demo experience.</small></footer>
+
+  <dialog id="modal"><button class="modal-close" aria-label="Close">x</button><div id="modalContent"></div></dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

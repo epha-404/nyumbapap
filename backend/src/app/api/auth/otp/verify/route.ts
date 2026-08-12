@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { AuthFlowError, verifyOtp } from "@/modules/auth/otp";
+import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/modules/auth/session";
+import { authCookieOptions, clientIpHash, deviceIdentity, verifyCsrfRequest } from "@/modules/auth/request-security";
+
+const schema = z.object({ challengeId: z.string().uuid(), code: z.string().regex(/^\d{6}$/) });
+
+export async function POST(request: Request) {
+  if (!verifyCsrfRequest(request)) return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Enter the six-digit code" }, { status: 400 });
+  const device = deviceIdentity(request);
+  try {
+    const user = await verifyOtp({ ...parsed.data, deviceHash: device.hash, ipHash: clientIpHash(request) });
+    const response = NextResponse.json({ ok: true, role: user.role });
+    response.cookies.set(SESSION_COOKIE, createSessionToken(user), authCookieOptions(true, SESSION_MAX_AGE_SECONDS));
+    return response;
+  } catch (error) {
+    const status = error instanceof AuthFlowError ? error.status : 500;
+    const response = NextResponse.json({ error: error instanceof Error ? error.message : "Verification failed" }, { status });
+    if (error instanceof AuthFlowError && error.retryAfter) response.headers.set("Retry-After", String(error.retryAfter));
+    return response;
+  }
+}
