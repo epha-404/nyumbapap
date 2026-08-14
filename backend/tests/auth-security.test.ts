@@ -52,7 +52,7 @@ describe("authentication security", () => {
   });
 
   it("accepts a signed CSRF token from any configured frontend origin", () => {
-    process.env.FRONTEND_URLS = "http://localhost:3000,http://100.83.243.1:3000";
+    process.env.FRONTEND_URLS = "http://localhost:3000,http://100.83.243.1:3000,https://nyumba-pap-frontend-phavm.deployments.nisoko.co.ke";
     const token = createCsrfToken();
     const request = new Request("http://localhost:3001/api/auth/otp/request", { method: "POST", headers: {
       origin: "http://100.83.243.1:3000",
@@ -60,6 +60,12 @@ describe("authentication security", () => {
       "x-csrf-token": token
     } });
     expect(verifyCsrfRequest(request)).toBe(true);
+    const productionRequest = new Request("https://nyumba-pap-bew3p.deployments.nisoko.co.ke/api/auth/otp/request", { method: "POST", headers: {
+      origin: "https://nyumba-pap-frontend-phavm.deployments.nisoko.co.ke",
+      cookie: `${CSRF_COOKIE}=${token}`,
+      "x-csrf-token": token
+    } });
+    expect(verifyCsrfRequest(productionRequest)).toBe(true);
     delete process.env.FRONTEND_URLS;
   });
 
