@@ -80,9 +80,10 @@ export async function consumeRateLimit(action: string, keyHash: string, limit: n
   const now = new Date();
   const id = createHmac("sha256", secret()).update(`rate:${action}:${keyHash}`).digest("hex");
   const result = await db.$transaction(async tx => {
-    const current = await tx.authRateLimit.findUnique({ where: { id } });
+    const where = { action_keyHash: { action, keyHash } };
+    const current = await tx.authRateLimit.findUnique({ where });
     const expired = !current || current.windowExpiresAt <= now;
-    return tx.authRateLimit.upsert({ where: { id }, create: { id, action, keyHash, count: 1, windowExpiresAt: new Date(now.getTime() + windowSeconds * 1000) }, update: expired ? { count: 1, windowExpiresAt: new Date(now.getTime() + windowSeconds * 1000) } : { count: { increment: 1 } } });
+    return tx.authRateLimit.upsert({ where, create: { id, action, keyHash, count: 1, windowExpiresAt: new Date(now.getTime() + windowSeconds * 1000) }, update: expired ? { count: 1, windowExpiresAt: new Date(now.getTime() + windowSeconds * 1000) } : { count: { increment: 1 } } });
   });
   return {
     limited: result.count > limit,

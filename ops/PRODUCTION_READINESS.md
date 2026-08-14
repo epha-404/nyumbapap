@@ -19,23 +19,22 @@
 Run encrypted backups from a restricted host and copy them to versioned, access-logged storage in a separate failure domain:
 
 ```sh
-DATABASE_URL='...' BACKUP_DIR=/secure/backups ./ops/backup-postgres.sh
-./ops/verify-backup.sh /secure/backups/nyumbapap-YYYYMMDDTHHMMSSZ.dump
+DATABASE_URL='mongodb+srv://...' BACKUP_DIR=/secure/backups ./ops/backup-mongodb.sh
+gzip -t /secure/backups/nyumbapap-YYYYMMDDTHHMMSSZ.archive.gz
 ```
 
-The checksum and `pg_restore --list` check detect corruption but do not prove recoverability. Restore drills do.
+Archive validation detects transport corruption but does not prove recoverability. Restore drills do.
 
 ## Disaster-recovery drill
 
-Provision a disposable database whose name contains `_dr_`, apply the same PostgreSQL/PostGIS major versions as production, and run:
+Provision a disposable MongoDB database/cluster and restore the archive with `mongorestore --uri="$DR_RESTORE_DATABASE_URL" --archive=... --gzip --drop`. Verify collection counts, indexes, and an atomic payment/unlock transaction before declaring the drill successful.
 
 ```sh
-DR_RESTORE_DATABASE_URL='postgresql://.../nyumbapap_dr_20260812' \
-DR_CONFIRM=RESTORE_DISPOSABLE_DATABASE \
-./ops/dr-drill.sh /secure/backups/nyumbapap-YYYYMMDDTHHMMSSZ.dump
+mongorestore --uri='mongodb+srv://.../nyumbapap_dr_20260812' \
+  --archive=/secure/backups/nyumbapap-YYYYMMDDTHHMMSSZ.archive.gz --gzip --drop
 ```
 
-Record backup age, restore duration, row counts for critical tables, application health-check results, owner, date, incidents, and follow-up actions. Quarterly drills should test loss of the primary region and credentials, not only database restoration. Do not delete the drill database until evidence has been reviewed, then dispose of it according to the approved process.
+Record backup age, restore duration, document counts for critical collections, application health-check results, owner, date, incidents, and follow-up actions. Quarterly drills should test loss of the primary region and credentials, not only database restoration. Do not delete the drill database until evidence has been reviewed, then dispose of it according to the approved process.
 
 ## Launch gates
 

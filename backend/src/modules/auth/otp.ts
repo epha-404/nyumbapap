@@ -79,7 +79,7 @@ export async function requestOtp(input: {
   let displayName = input.displayName?.trim() || null;
   let role: UserRole | null = input.role ? roleToDatabase(input.role) : null;
   if (input.mode === "LOGIN") {
-    const user = await db.user.findUnique({ where: { phoneHash: phoneDigest } });
+    const user = await db.user.findFirst({ where: { phoneHash: phoneDigest } });
     if (!user || user.status !== "ACTIVE") throw new AuthFlowError("No active account exists for this phone number.", 404);
     const account = await db.appAccount.findUnique({ where: { id: user.id } }) as AccountRow | null;
     if (!account) throw new AuthFlowError("Account setup is incomplete.", 409);
@@ -88,7 +88,7 @@ export async function requestOtp(input: {
     role = user.role;
   } else {
     if (!displayName || displayName.length < 2 || displayName.length > 80 || !role) throw new AuthFlowError("Enter your name and account type.");
-    if (await db.user.findUnique({ where: { phoneHash: phoneDigest }, select: { id: true } })) {
+    if (await db.user.findFirst({ where: { phoneHash: phoneDigest }, select: { id: true } })) {
       throw new AuthFlowError("An account already exists for this phone number.", 409);
     }
   }

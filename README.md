@@ -18,10 +18,10 @@ Next.js modular monolith
 |   |-- payment providers and callback handling
 |   |-- private object storage
 |   |-- SMS providers
-|-- PostgreSQL 16 + PostGIS through Prisma
+|-- MongoDB replica set through Prisma, with GeoJSON/2dsphere location indexing
 ```
 
-This is deliberately a modular monolith. It keeps hosting, operations, and development affordable. PostgreSQL handles relational, text, and spatial work. There is no Redis dependency; add one only after measurements show database-backed rate limits, short-lived OTP state, or background work are a bottleneck. Lightweight jobs can initially use a protected cron route plus idempotent database records.
+This is deliberately a modular monolith. It keeps hosting, operations, and development affordable. MongoDB handles application documents, transactions, and GeoJSON spatial work. There is no Redis dependency; add one only after measurements show database-backed rate limits, short-lived OTP state, or background work are a bottleneck. Lightweight jobs can initially use a protected cron route plus idempotent database records.
 
 ## Local setup
 
@@ -40,13 +40,13 @@ npm run dev
 
 Open the frontend at `http://localhost:3000`. The backend listens on `http://localhost:3001`, and its health probe is `GET http://localhost:3001/api/health`. `frontend/API_BASE_URL` controls server-side API requests and the frontend's same-origin `/api` proxy. Do not commit `.env.local`; it is ignored.
 
-The `backend/prisma/migrations/0001_initial_postgis/migration.sql` baseline enables PostGIS. During this foundation phase, `prisma db push` materializes the schema locally. Before the first shared environment, generate and review a complete Prisma migration from a clean development database and commit it.
+MongoDB must run as a replica set because payment callbacks and unlock creation use multi-document transactions. Run `npm run mongo:start`, initialize `rs0` once, then run `npm run db:setup --workspace backend` to synchronize Prisma indexes and install partial unique plus `2dsphere` indexes.
 
 ## Data and privacy boundaries
 
 The schema covers users/roles, landlord and agent profiles, properties, rental units, listings, media, payments, tenant unlocks, enquiries, viewing requests, reports, verification records, and audit events.
 
-Sensitive fields are modeled separately as encrypted bytes: exact addresses, exact coordinates, owner contacts, identity numbers, verification document keys, and review notes. Search fields contain only a town, an approximate area, intentionally coarse coordinates, and a PostGIS search point. The public listings route uses a Prisma `select` allow-list that cannot return protected columns.
+Sensitive fields are modeled separately as encrypted bytes: exact addresses, exact coordinates, owner contacts, identity numbers, verification document keys, and review notes. Search fields contain only a town, an approximate area, intentionally coarse coordinates, and a GeoJSON search point. The public listings route uses a Prisma `select` allow-list that cannot return protected columns.
 
 `backend/src/lib/crypto.ts` provides versioned AES-256-GCM field encryption and normalized blind indexes. In production, keep the 32-byte encryption key in the host secret store, rotate it with a versioned-key procedure, and use a separate secret as the blind-index pepper. Never log decrypted values, Daraja credentials, OTPs, identity documents, or exact locations. The development console SMS provider is prohibited in production.
 
@@ -95,7 +95,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 ## Low-budget hosting plan
 
 - Deploy the Next.js monolith to a small Node-compatible host (for example Render, Railway, Fly.io, or a small VPS) in the nearest practical region. Avoid serverless platforms that cannot reliably bundle/run Sharp or accept Daraja callbacks.
-- Start with a small managed PostgreSQL/PostGIS service with automated daily backups and point-in-time recovery if affordable. Neon/Supabase may be economical, but confirm PostGIS, connection limits, and region.
+- Start with a managed MongoDB replica set with automated daily backups and point-in-time recovery. MongoDB Atlas is the simplest production option; select a region appropriate for Kenyan users and verify transaction support.
 - Use Cloudflare R2 for private processed assets; serve approved derivatives through Cloudflare with controlled URLs. Set lifecycle rules for abandoned/rejected objects.
 - Use Sentry free tier with low trace sampling and PII collection disabled.
 - Use a single protected scheduled trigger for vacancy expiry, reconciliation, and notification outbox work. Keep jobs idempotent.
@@ -103,7 +103,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 
 ## Deployment path
 
-1. Provision PostgreSQL/PostGIS and run a reviewed migration.
+1. Provision a MongoDB replica set and run `npm run db:setup --workspace backend`.
 2. Provision private R2/S3 buckets and a least-privilege application credential.
 3. Configure a public HTTPS application origin and exact Daraja callback URL.
 4. Set secrets through the host secret manager, never a committed file.
@@ -116,7 +116,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 
 - [ ] Public `APP_URL` and HTTPS callback reachability
 - [ ] Independent session, encryption, and blind-index secrets
-- [ ] Production PostgreSQL/PostGIS URL and backup policy
+- [ ] Production MongoDB replica-set URL and backup policy
 - [ ] Daraja consumer key/secret, shortcode, passkey, callback URL, and production approval
 - [ ] R2/S3 endpoint, bucket, region, least-privilege access key, lifecycle and CORS policies
 - [ ] Africa's Talking username, API key, approved sender ID, message templates, and delivery callback plan
@@ -140,7 +140,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 
 ### Phase 2 - grow after evidence
 
-- PostGIS radius/map search, saved searches and alerts, agent organizations, appointment workflows, verified-interaction ratings, and automated duplicate/fraud signals.
+- MongoDB GeoJSON radius/map search, saved searches and alerts, agent organizations, appointment workflows, verified-interaction ratings, and automated duplicate/fraud signals.
 - Add Redis only if observed traffic makes database-backed throttling or job claiming inadequate.
 - Consider an Android wrapper or React Native app only after web usage demonstrates a mobile-native need.
 

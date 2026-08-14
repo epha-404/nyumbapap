@@ -5,7 +5,7 @@ import { callbackValue, darajaCallbackSchema } from "./mpesa";
 export async function processDarajaCallback(db: PrismaClient, rawBody: string) {
   const parsed = darajaCallbackSchema.parse(JSON.parse(rawBody)); const callback = parsed.Body.stkCallback; const callbackHash = createHash("sha256").update(rawBody).digest("hex");
   return db.$transaction(async tx => {
-    const payment = await tx.payment.findUnique({ where: { checkoutRequestId: callback.CheckoutRequestID } });
+    const payment = await tx.payment.findFirst({ where: { checkoutRequestId: callback.CheckoutRequestID } });
     if (!payment || payment.merchantRequestId !== callback.MerchantRequestID) throw new Error("UNKNOWN_PAYMENT");
     if (payment.state === "PAID") return { paymentId: payment.id, state: "PAID" as const, duplicate: true };
     if (callback.ResultCode !== 0) { await tx.payment.update({ where: { id: payment.id }, data: { state: "FAILED", callbackHash } }); return { paymentId: payment.id, state: "FAILED" as const, duplicate: false }; }

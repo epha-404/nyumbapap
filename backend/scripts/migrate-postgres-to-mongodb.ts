@@ -20,6 +20,7 @@ const tables = [
 function document(table: string, row: Record<string, unknown>) {
   const value = { ...row } as Record<string, unknown>;
   if (value.id != null) { value._id = String(value.id); delete value.id; }
+  if (table === "app_accounts") { value._id = String(value.user_id); delete value.user_id; }
   if (table === "auth_rate_limits" && !value._id) value._id = createHash("sha256").update(`${value.action}:${value.key_hash}`).digest("hex");
   if (table === "properties") {
     const longitude = value.approximate_longitude == null ? null : Number(value.approximate_longitude);
@@ -50,7 +51,6 @@ async function main() {
       console.log(`${table}: ${rows.length}`);
     }
     await target.collection("properties").createIndex({ search_point: "2dsphere" }, { sparse: true, name: "properties_search_point_2dsphere" });
-    await target.collection("audit_events").createIndex({ entity_type: 1, entity_id: 1, created_at: 1 });
     console.log("Migration complete");
   } finally {
     await Promise.all([pg.end(), mongo.close()]);
