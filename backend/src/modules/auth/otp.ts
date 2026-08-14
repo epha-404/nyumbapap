@@ -86,6 +86,7 @@ export async function requestOtp(input: {
   let userId: string | null = null;
   let displayName = input.displayName?.trim() || null;
   let role: UserRole | null = input.role ? roleToDatabase(input.role) : null;
+  let purpose: OtpPurpose = input.mode === "LOGIN" ? "LOGIN" : input.mode === "EMAIL_MIGRATION" ? "EMAIL_MIGRATION" : "SIGNUP";
   const existing = await db.user.findUnique({ where: { email } });
 
   if (input.mode === "EMAIL_MIGRATION") {
@@ -97,20 +98,24 @@ export async function requestOtp(input: {
     displayName = account.displayName;
     role = user.role;
   } else if (input.mode === "LOGIN") {
-    if (!existing || existing.status !== "ACTIVE") {
+    if (!existing) {
+      purpose = "SIGNUP";
+      displayName = "NyumbaPap user";
+      role = "TENANT";
+    } else if (existing.status !== "ACTIVE") {
       return { message: OTP_GENERIC_RESPONSE, expiresInSeconds: OTP_TTL_SECONDS, cooldownSeconds: 300 };
+    } else {
+      const account = await db.appAccount.findUnique({ where: { id: existing.id } }) as AccountRow | null;
+      if (!account) return { message: OTP_GENERIC_RESPONSE, expiresInSeconds: OTP_TTL_SECONDS, cooldownSeconds: 300 };
+      userId = existing.id;
+      displayName = account.displayName;
+      role = existing.role;
     }
-    const account = await db.appAccount.findUnique({ where: { id: existing.id } }) as AccountRow | null;
-    if (!account) return { message: OTP_GENERIC_RESPONSE, expiresInSeconds: OTP_TTL_SECONDS, cooldownSeconds: 300 };
-    userId = existing.id;
-    displayName = account.displayName;
-    role = existing.role;
   } else {
     if (!displayName || displayName.length < 2 || displayName.length > 80 || !role) throw new AuthFlowError("Enter your name and account type.");
     if (existing) return { message: OTP_GENERIC_RESPONSE, expiresInSeconds: OTP_TTL_SECONDS, cooldownSeconds: 300 };
   }
 
-  const purpose: OtpPurpose = input.mode === "LOGIN" ? "LOGIN" : input.mode === "EMAIL_MIGRATION" ? "EMAIL_MIGRATION" : "SIGNUP";
   await db.otpCode.updateMany({ where: { email, purpose, consumedAt: null }, data: { consumedAt: new Date() } });
   const id = randomUUID();
   const code = generateOtpCode();

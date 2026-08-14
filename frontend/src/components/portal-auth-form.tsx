@@ -78,7 +78,7 @@ export function PortalAuthForm({ mode, returnTo = "/dashboard" }: { mode: "login
     const seconds = String(cooldown % 60).padStart(2, "0");
     return <form key="otp-verification" className={styles.form} onSubmit={verifyCode}>
       <p className={styles.muted}>Enter the six-digit code sent to {challenge.email}. It expires in five minutes.</p>
-      <p className={styles.muted}>{mode === "login" ? "Sign-in codes are sent only to registered, active accounts. If this is a new email, create an account first." : "If this email already belongs to an account, use the sign-in page instead."}</p>
+      <p className={styles.muted}>{mode === "login" ? "If this email is new, verifying it creates a home-seeker account automatically." : "If this email already belongs to an account, use the sign-in page instead."}</p>
       {notice && <p className={styles.muted} role="status">{notice}</p>}
       <label>Verification code<input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required autoFocus /></label>
       {error && <p className={styles.error} role="alert">{error}</p>}
