@@ -40,6 +40,8 @@ npm run dev
 
 Open the frontend at `http://localhost:3000`. The backend listens on `http://localhost:3001`, and its health probe is `GET http://localhost:3001/api/health`. `frontend/API_BASE_URL` controls server-side API requests and the frontend's same-origin `/api` proxy. Do not commit `.env.local`; it is ignored.
 
+The deployed backend base URL is `https://nyumba-pap-bew3p.deployments.nisoko.co.ke`. Frontend deployments must set `API_BASE_URL` to that origin; browser-facing calls continue through the frontend's same-origin `/api` rewrite so session cookies and CSRF protection remain intact.
+
 MongoDB must run as a replica set because payment callbacks and unlock creation use multi-document transactions. Run `npm run mongo:start`, initialize `rs0` once, then run `npm run db:setup --workspace backend` to synchronize Prisma indexes and install partial unique plus `2dsphere` indexes.
 
 ## Data and privacy boundaries

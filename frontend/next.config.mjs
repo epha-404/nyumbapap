@@ -1,7 +1,7 @@
 const scriptSrc = `script-src 'self' 'unsafe-inline'${
   process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""
 }`;
-const apiBaseUrl = (process.env.API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const apiBaseUrl = (process.env.API_BASE_URL ?? "https://nyumba-pap-bew3p.deployments.nisoko.co.ke").replace(/\/$/, "");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
