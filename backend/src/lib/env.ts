@@ -4,6 +4,7 @@ const serverEnvSchema = z.object({
   APP_URL: z.string().url().default("http://localhost:3000"),
   DATABASE_URL: z.string().min(1),
   SESSION_SECRET: z.string().min(32),
+  OTP_HMAC_SECRET: z.string().min(32),
   FIELD_ENCRYPTION_KEY_BASE64: z.string().min(43),
   IMAGE_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(12_582_912),
   IMAGE_MAX_INPUT_PIXELS: z.coerce.number().int().positive().default(40_000_000),

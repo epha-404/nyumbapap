@@ -25,3 +25,16 @@ export async function sendNesEmail(email: NesEmail) {
   if (!response.ok) throw new NesEmailError(`NES send failed (${response.status})`, response.status, body);
   try { return JSON.parse(body) as Record<string, unknown>; } catch { return { accepted: true }; }
 }
+
+export class NesEmailProvider implements EmailProvider {
+  async sendOtp(input: OtpEmail) {
+    const minutes = Math.ceil(input.expiresInSeconds / 60);
+    const subject = "Your NyumbaPap verification code";
+    const text = `Your NyumbaPap verification code is ${input.code}. It expires in ${minutes} minutes. Do not share this code.`;
+    const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#17352f"><h2>Your verification code</h2><p>Enter this code in NyumbaPap:</p><p style="font-size:32px;font-weight:700;letter-spacing:8px">${input.code}</p><p>This code expires in ${minutes} minutes. Do not share it with anyone.</p></div>`;
+    const result = await sendNesEmail({ to: input.to, subject, text, html, category: "security" });
+    const providerMessageId = result.id ?? result.message_id ?? result.messageId;
+    return { providerMessageId: typeof providerMessageId === "string" ? providerMessageId : "accepted" };
+  }
+}
+import type { EmailProvider, OtpEmail } from "./provider";

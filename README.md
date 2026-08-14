@@ -17,7 +17,7 @@ Next.js modular monolith
 |   |-- media processing
 |   |-- payment providers and callback handling
 |   |-- private object storage
-|   |-- SMS providers
+|   |-- Email and optional SMS providers
 |-- MongoDB replica set through Prisma, with GeoJSON/2dsphere location indexing
 ```
 
@@ -50,6 +50,8 @@ Notifications are written transactionally to `notification_outbox`. Invoke `POST
 
 Required deployment secrets are `NES_API_KEY` and `NES_WEBHOOK_SECRET`. Configure `NES_API_URL`, `NES_SECURITY_FROM`, `NES_SUPPORT_FROM`, and `NES_BILLING_FROM` from `backend/.env.example`. Never commit live keys.
 
+NES is the selected transactional provider for email OTP; it implements the `EmailProvider` interface so provider changes do not affect auth call sites. OTPs are six numeric digits generated with `crypto.randomInt`, HMAC-SHA256 hashed with `OTP_HMAC_SECRET`, single-use, and valid for five minutes. Deploy the email-auth schema by following `backend/prisma/migrations/0008_email_otp_auth/README.md`; phone-only legacy accounts are explicitly marked for email capture rather than silently linked or duplicated.
+
 MongoDB must run as a replica set because payment callbacks and unlock creation use multi-document transactions. Run `npm run mongo:start`, initialize `rs0` once, then run `npm run db:setup --workspace backend` to synchronize Prisma indexes and install partial unique plus `2dsphere` indexes.
 
 ## Data and privacy boundaries
@@ -58,7 +60,7 @@ The schema covers users/roles, landlord and agent profiles, properties, rental u
 
 Sensitive fields are modeled separately as encrypted bytes: exact addresses, exact coordinates, owner contacts, identity numbers, verification document keys, and review notes. Search fields contain only a town, an approximate area, intentionally coarse coordinates, and a GeoJSON search point. The public listings route uses a Prisma `select` allow-list that cannot return protected columns.
 
-`backend/src/lib/crypto.ts` provides versioned AES-256-GCM field encryption and normalized blind indexes. In production, keep the 32-byte encryption key in the host secret store, rotate it with a versioned-key procedure, and use a separate secret as the blind-index pepper. Never log decrypted values, Daraja credentials, OTPs, identity documents, or exact locations. The development console SMS provider is prohibited in production.
+`backend/src/lib/crypto.ts` provides versioned AES-256-GCM field encryption and normalized blind indexes. In production, keep the 32-byte encryption key in the host secret store, rotate it with a versioned-key procedure, and use separate secrets for blind indexes and OTP HMACs. Never log decrypted values, Daraja credentials, OTPs, identity documents, or exact locations. The Africa's Talking adapter remains isolated for non-authentication SMS integrations; email OTP never calls it.
 
 ## Image processing and storage
 
@@ -139,7 +141,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 
 ### Phase 1 - complete the trustworthy MVP
 
-- Phone OTP sessions with hashed one-time codes, expiry, attempt limits, device/IP throttles, CSRF protection, and secure cookies.
+- Email OTP sessions through NES with hashed one-time codes, expiry, attempt limits, email/device/IP throttles, CSRF protection, and secure cookies.
 - Landlord/agent onboarding and object-authorized listing CRUD.
 - Authenticated image upload route using the existing pipeline, malware scanning, moderation, and cleanup jobs.
 - Admin verification/moderation portal with expiring badge definitions and immutable audit events.

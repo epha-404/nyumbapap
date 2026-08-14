@@ -76,6 +76,10 @@ export function phoneRateKey(phoneHash: string) {
   return mac("phone", phoneHash);
 }
 
+export function emailRateKey(email: string) {
+  return mac("email", email.trim().toLowerCase());
+}
+
 export async function consumeRateLimit(action: string, keyHash: string, limit: number, windowSeconds: number) {
   const now = new Date();
   const id = createHmac("sha256", secret()).update(`rate:${action}:${keyHash}`).digest("hex");

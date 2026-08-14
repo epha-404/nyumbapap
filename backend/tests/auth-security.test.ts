@@ -1,19 +1,38 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createCsrfToken, CSRF_COOKIE, verifyCsrfRequest } from "@/modules/auth/request-security";
-import { hashOtpCode, otpCodeMatches } from "@/modules/auth/otp";
+import { failedAttempt, generateOtpCode, hashOtpCode, otpCodeMatches, otpIsUnavailable } from "@/modules/auth/otp";
 import { createSessionToken, readSessionToken } from "@/modules/auth/session";
 import { Role } from "@/modules/auth/roles";
 
 describe("authentication security", () => {
   beforeEach(() => {
     process.env.SESSION_SECRET = "test-session-secret-that-is-at-least-32-characters";
+    process.env.OTP_HMAC_SECRET = "test-otp-hmac-secret-that-is-at-least-32-characters";
   });
 
   it("stores comparable OTP hashes without exposing the code", () => {
-    const hash = hashOtpCode("challenge", "phone-hash", "123456");
+    const hash = hashOtpCode("challenge", "user@example.com", "123456");
     expect(hash).not.toContain("123456");
-    expect(otpCodeMatches(hash, "challenge", "phone-hash", "123456")).toBe(true);
-    expect(otpCodeMatches(hash, "challenge", "phone-hash", "654321")).toBe(false);
+    expect(otpCodeMatches(hash, "challenge", "user@example.com", "123456")).toBe(true);
+    expect(otpCodeMatches(hash, "challenge", "user@example.com", "654321")).toBe(false);
+  });
+
+  it("generates varied six-digit numeric codes with the CSPRNG helper", () => {
+    const codes = Array.from({ length: 500 }, generateOtpCode);
+    expect(codes.every(code => /^\d{6}$/.test(code))).toBe(true);
+    expect(new Set(codes).size).toBeGreaterThan(490);
+  });
+
+  it("treats the exact expiry boundary as unavailable", () => {
+    const expiresAt = new Date("2026-08-14T12:00:00.000Z");
+    const challenge = { expiresAt, consumedAt: null, attemptCount: 0, maxAttempts: 5 };
+    expect(otpIsUnavailable(challenge, expiresAt.getTime() - 1)).toBe(false);
+    expect(otpIsUnavailable(challenge, expiresAt.getTime())).toBe(true);
+  });
+
+  it("locks the code on the fifth failed attempt", () => {
+    expect(failedAttempt(3, 5)).toEqual({ attemptCount: 4, locked: false });
+    expect(failedAttempt(4, 5)).toEqual({ attemptCount: 5, locked: true });
   });
 
   it("requires a matching signed double-submit CSRF token", () => {

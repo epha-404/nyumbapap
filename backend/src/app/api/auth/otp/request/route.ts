@@ -5,8 +5,8 @@ import { authCookieOptions, clientIpHash, deviceIdentity, DEVICE_COOKIE, verifyC
 import { Role } from "@/modules/auth/roles";
 
 const schema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("LOGIN"), phone: z.string().min(10).max(20) }),
-  z.object({ mode: z.literal("REGISTER"), phone: z.string().min(10).max(20), displayName: z.string().trim().min(2).max(80), role: z.enum(["CLIENT", "LANDLORD", "AGENT"]) })
+  z.object({ mode: z.literal("LOGIN"), email: z.string().trim().email().max(254) }),
+  z.object({ mode: z.literal("REGISTER"), email: z.string().trim().email().max(254), displayName: z.string().trim().min(2).max(80), role: z.enum(["CLIENT", "LANDLORD", "AGENT"]) })
 ]);
 
 export async function POST(request: Request) {

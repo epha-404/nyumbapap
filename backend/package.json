@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed-local.ts",
     "db:migrate-data": "tsx scripts/migrate-postgres-to-mongodb.ts",
+    "db:migrate-email-auth": "tsx scripts/migrate-email-auth.ts",
     "db:setup": "prisma db push && tsx scripts/setup-mongodb.ts"
   },
   "dependencies": {

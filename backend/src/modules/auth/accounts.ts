@@ -12,6 +12,12 @@ export function normalizePhone(input: string) {
 
 export const hashPhone = (phone: string) => createHash("sha256").update(normalizePhone(phone)).digest("hex");
 
+export function normalizeEmail(input: string) {
+  const email = input.trim().toLowerCase();
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address");
+  return email;
+}
+
 async function createAuthTables() { await db.authRateLimit.findFirst({ select: { id: true } }); }
 
 let authTablesPromise: Promise<void> | null = null;

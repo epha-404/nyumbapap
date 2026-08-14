@@ -8,13 +8,13 @@ export async function processEmailOutbox(limit = 25) {
   let sent = 0, skipped = 0, failed = 0;
   for (const message of messages) {
     const template = renderOutboxEmail(message.topic, message.payload, message.recipient.account?.displayName ?? "NyumbaPap user");
-    if (!template || !message.recipient.emailEncrypted) {
+    if (!template || !message.recipient.emailVerifiedAt || (!message.recipient.email && !message.recipient.emailEncrypted)) {
       await db.notificationOutbox.update({ where: { id: message.id }, data: { status: "SKIPPED", processedAt: new Date(), lastError: template ? "Recipient has no verified email" : "No email template for topic" } });
       skipped++;
       continue;
     }
     try {
-      const to = decryptField(Buffer.from(message.recipient.emailEncrypted), process.env.FIELD_ENCRYPTION_KEY_BASE64!);
+      const to = message.recipient.email ?? decryptField(Buffer.from(message.recipient.emailEncrypted!), process.env.FIELD_ENCRYPTION_KEY_BASE64!);
       await sendNesEmail({ ...template, to });
       await db.notificationOutbox.update({ where: { id: message.id }, data: { status: "SENT", processedAt: new Date(), attempts: { increment: 1 }, lastError: null } });
       sent++;

@@ -24,6 +24,12 @@ enum UserStatus {
   DELETED
 }
 
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  EMAIL_MIGRATION
+}
+
 enum VerificationState {
   NOT_SUBMITTED
   PENDING
@@ -89,6 +95,9 @@ type GeoPoint {
 
 model User {
   id String @id @map("_id") @default(cuid())
+  email String @unique
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  requiresEmailCapture Boolean @default(false) @map("requires_email_capture")
   phoneEncrypted Bytes? @map("phone_encrypted")
   phoneHash String? @map("phone_hash")
   emailEncrypted Bytes? @map("email_encrypted")
@@ -113,7 +122,29 @@ model User {
   notifications NotificationOutbox[]
   account AppAccount?
   otpChallenges AuthOtpChallenge[]
+  otpCodes OtpCode[]
   @@map("users")
+}
+
+model OtpCode {
+  id String @id @map("_id") @default(cuid())
+  userId String? @map("user_id")
+  email String
+  codeHash String @map("code_hash")
+  purpose OtpPurpose
+  displayName String? @map("display_name")
+  registrationRole UserRole? @map("registration_role")
+  deviceHash String @map("device_hash")
+  attemptCount Int @default(0) @map("attempt_count")
+  maxAttempts Int @default(5) @map("max_attempts")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  consumedAt DateTime? @map("consumed_at")
+  providerMessageId String? @map("provider_message_id")
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt])
+  @@map("otp_codes")
 }
 
 model LandlordProfile {
