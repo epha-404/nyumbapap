@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   poweredByHeader: false,
   experimental: { useTypeScriptCli: false },
   async headers() {
