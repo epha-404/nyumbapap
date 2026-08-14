@@ -18,13 +18,13 @@ describe("Nisoko Email Service", () => {
 
   it("uses the billing sender and does not expose the API key in the payload", async () => {
     process.env.NES_API_KEY = "nsk_live_test";
-    process.env.NES_BILLING_FROM = "support@nisoko.co.ke";
+    process.env.NES_BILLING_FROM = "billing@odafood.com";
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "message-1" }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     await sendNesEmail({ to: "tenant@example.com", category: "billing", subject: "Receipt", text: "Paid", html: "<p>Paid</p>" });
     const init = fetchMock.mock.calls[0]![1] as RequestInit;
     expect(init.headers).toMatchObject({ "X-API-Key": "nsk_live_test" });
-    expect(JSON.parse(String(init.body))).toMatchObject({ from: "support@nisoko.co.ke", to: "tenant@example.com" });
+    expect(JSON.parse(String(init.body))).toMatchObject({ from: "billing@odafood.com", to: "tenant@example.com" });
     expect(String(init.body)).not.toContain("nsk_live_test");
   });
 

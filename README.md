@@ -44,7 +44,7 @@ The deployed backend base URL is `https://nyumba-pap-bew3p.deployments.nisoko.co
 
 ## Nisoko Email Service
 
-Transactional email uses NES at `https://nes.nisoko.co.ke`. Security messages send from `nyumbapap-security@nisoko.co.ke`; support, billing, and general operations currently send from `support@nisoko.co.ke` because the account cannot claim a third free handle. Set `NES_BILLING_FROM` to a dedicated address after connecting a custom domain.
+Transactional email uses NES at `https://nes.nisoko.co.ke`. Security messages send from `security@odafood.com`, support and general operations from `support@odafood.com`, and billing messages from `billing@odafood.com`.
 
 Notifications are written transactionally to `notification_outbox`. Invoke `POST /api/internal/notifications/email` with `Authorization: Bearer $LIFECYCLE_JOB_SECRET` every minute to deliver pending messages with retry/backoff. Recipients without a stored verified email are marked `SKIPPED`; the dispatcher never substitutes an unverified address. NES lifecycle events are received at `POST /api/webhooks/nes`, verified against the raw request with HMAC-SHA256 and stored idempotently by signature hash.
 

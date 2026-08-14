@@ -23,6 +23,6 @@ export function renderOutboxEmail(topic: string, payload: unknown, displayName: 
   const safeName = escape(displayName || "NyumbaPap user");
   const details = escape(JSON.stringify(payload));
   const text = `Hello ${displayName || "NyumbaPap user"},\n\n${subject}.\n\nReference details: ${JSON.stringify(payload)}\n\nNyumbaPap`;
-  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#17352f"><h2>${escape(subject)}</h2><p>Hello ${safeName},</p><p>${escape(subject)}.</p><div style="padding:12px;background:#f3f7f5;border-radius:8px"><strong>Reference details</strong><br><code>${details}</code></div><p>If you did not expect this message, contact support@nisoko.co.ke.</p><p>NyumbaPap</p></div>`;
-  return { category, subject, text, html, replyTo: "support@nisoko.co.ke" };
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#17352f"><h2>${escape(subject)}</h2><p>Hello ${safeName},</p><p>${escape(subject)}.</p><div style="padding:12px;background:#f3f7f5;border-radius:8px"><strong>Reference details</strong><br><code>${details}</code></div><p>If you did not expect this message, contact support@odafood.com.</p><p>NyumbaPap</p></div>`;
+  return { category, subject, text, html, replyTo: "support@odafood.com" };
 }

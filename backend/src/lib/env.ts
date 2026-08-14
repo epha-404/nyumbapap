@@ -22,9 +22,9 @@ const serverEnvSchema = z.object({
   LIFECYCLE_JOB_SECRET: z.string().min(32).optional()
   ,NES_API_URL: z.string().url().default("https://nes.nisoko.co.ke")
   ,NES_API_KEY: z.string().startsWith("nsk_live_").optional()
-  ,NES_SECURITY_FROM: z.string().email().default("nyumbapap-security@nisoko.co.ke")
-  ,NES_SUPPORT_FROM: z.string().email().default("support@nisoko.co.ke")
-  ,NES_BILLING_FROM: z.string().email().default("support@nisoko.co.ke")
+  ,NES_SECURITY_FROM: z.string().email().default("security@odafood.com")
+  ,NES_SUPPORT_FROM: z.string().email().default("support@odafood.com")
+  ,NES_BILLING_FROM: z.string().email().default("billing@odafood.com")
   ,NES_WEBHOOK_SECRET: z.string().min(24).optional()
 });
 

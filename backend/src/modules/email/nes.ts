@@ -6,9 +6,9 @@ export class NesEmailError extends Error {
 }
 
 function sender(category: EmailCategory) {
-  if (category === "security") return process.env.NES_SECURITY_FROM ?? "nyumbapap-security@nisoko.co.ke";
-  if (category === "billing") return process.env.NES_BILLING_FROM ?? "support@nisoko.co.ke";
-  return process.env.NES_SUPPORT_FROM ?? "support@nisoko.co.ke";
+  if (category === "security") return process.env.NES_SECURITY_FROM ?? "security@odafood.com";
+  if (category === "billing") return process.env.NES_BILLING_FROM ?? "billing@odafood.com";
+  return process.env.NES_SUPPORT_FROM ?? "support@odafood.com";
 }
 
 export async function sendNesEmail(email: NesEmail) {
