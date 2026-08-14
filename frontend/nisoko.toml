@@ -1,0 +1,4 @@
+name = 'nyumba-pap-frontend'
+slug = 'nyumba-pap-frontend-phavm'
+ram_size = 2048
+vcpu = 1.0

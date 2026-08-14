@@ -5,6 +5,7 @@ const apiBaseUrl = (process.env.API_BASE_URL ?? "https://nyumba-pap-bew3p.deploy
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   poweredByHeader: false,
   allowedDevOrigins: ["100.83.243.1", "gem-404.tailf274b8.ts.net"],
   experimental: { useTypeScriptCli: false },
