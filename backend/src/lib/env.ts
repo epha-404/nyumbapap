@@ -20,6 +20,12 @@ const serverEnvSchema = z.object({
   MPESA_BASE_URL_SANDBOX: z.string().url().default("https://sandbox.safaricom.co.ke"),
   MPESA_BASE_URL_PRODUCTION: z.string().url().default("https://api.safaricom.co.ke"),
   LIFECYCLE_JOB_SECRET: z.string().min(32).optional()
+  ,NES_API_URL: z.string().url().default("https://nes.nisoko.co.ke")
+  ,NES_API_KEY: z.string().startsWith("nsk_live_").optional()
+  ,NES_SECURITY_FROM: z.string().email().default("nyumbapap-security@nisoko.co.ke")
+  ,NES_SUPPORT_FROM: z.string().email().default("support@nisoko.co.ke")
+  ,NES_BILLING_FROM: z.string().email().default("support@nisoko.co.ke")
+  ,NES_WEBHOOK_SECRET: z.string().min(24).optional()
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

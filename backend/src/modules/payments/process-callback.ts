@@ -13,6 +13,7 @@ export async function processDarajaCallback(db: PrismaClient, rawBody: string) {
     if (!receipt || amount !== payment.amountKes) throw new Error("INVALID_PAYMENT_CONFIRMATION");
     await tx.payment.update({ where: { id: payment.id }, data: { state: "PAID", providerReceipt: receipt, callbackHash, paidAt: new Date() } });
     if (payment.purpose === "TENANT_UNLOCK") { if (!payment.listingId) throw new Error("PAYMENT_LISTING_REQUIRED"); await tx.tenantUnlock.upsert({ where: { tenantId_listingId: { tenantId: payment.userId, listingId: payment.listingId } }, create: { tenantId: payment.userId, listingId: payment.listingId, paymentId: payment.id }, update: {} }); }
+    await tx.notificationOutbox.upsert({ where: { dedupeKey: `payment-receipt:${payment.id}` }, create: { recipientId: payment.userId, topic: "PAYMENT_RECEIPT", dedupeKey: `payment-receipt:${payment.id}`, payload: { paymentId: payment.id, listingId: payment.listingId, amountKes: payment.amountKes, receipt } }, update: {} });
     return { paymentId: payment.id, state: "PAID" as const, duplicate: false };
   });
 }

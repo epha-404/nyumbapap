@@ -42,6 +42,14 @@ Open the frontend at `http://localhost:3000`. The backend listens on `http://loc
 
 The deployed backend base URL is `https://nyumba-pap-bew3p.deployments.nisoko.co.ke`. Frontend deployments must set `API_BASE_URL` to that origin; browser-facing calls continue through the frontend's same-origin `/api` rewrite so session cookies and CSRF protection remain intact.
 
+## Nisoko Email Service
+
+Transactional email uses NES at `https://nes.nisoko.co.ke`. Security messages send from `nyumbapap-security@nisoko.co.ke`; support, billing, and general operations currently send from `support@nisoko.co.ke` because the account cannot claim a third free handle. Set `NES_BILLING_FROM` to a dedicated address after connecting a custom domain.
+
+Notifications are written transactionally to `notification_outbox`. Invoke `POST /api/internal/notifications/email` with `Authorization: Bearer $LIFECYCLE_JOB_SECRET` every minute to deliver pending messages with retry/backoff. Recipients without a stored verified email are marked `SKIPPED`; the dispatcher never substitutes an unverified address. NES lifecycle events are received at `POST /api/webhooks/nes`, verified against the raw request with HMAC-SHA256 and stored idempotently by signature hash.
+
+Required deployment secrets are `NES_API_KEY` and `NES_WEBHOOK_SECRET`. Configure `NES_API_URL`, `NES_SECURITY_FROM`, `NES_SUPPORT_FROM`, and `NES_BILLING_FROM` from `backend/.env.example`. Never commit live keys.
+
 MongoDB must run as a replica set because payment callbacks and unlock creation use multi-document transactions. Run `npm run mongo:start`, initialize `rs0` once, then run `npm run db:setup --workspace backend` to synchronize Prisma indexes and install partial unique plus `2dsphere` indexes.
 
 ## Data and privacy boundaries

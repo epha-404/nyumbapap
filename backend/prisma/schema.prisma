@@ -373,6 +373,18 @@ model NotificationOutbox {
   @@map("notification_outbox")
 }
 
+model EmailDeliveryEvent {
+  id String @id @map("_id")
+  eventType String @map("event_type")
+  messageId String? @map("message_id")
+  occurredAt DateTime @map("occurred_at")
+  payload Json
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([eventType, occurredAt])
+  @@index([messageId, occurredAt])
+  @@map("email_delivery_events")
+}
+
 model AppAccount {
   id String @id @map("_id")
   displayName String @map("display_name")

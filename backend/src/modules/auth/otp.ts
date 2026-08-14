@@ -135,6 +135,7 @@ export async function verifyOtp(input: { challengeId: string; code: string; devi
       if (!user || user.status !== "ACTIVE") throw new AuthFlowError("Account is not active.", 403);
       const role = roleFromStoredValue(user.role);
       if (!role) throw new AuthFlowError("Account role is not supported.", 403);
+      await tx.notificationOutbox.upsert({ where: { dedupeKey: `security-login:${challenge.id}` }, create: { recipientId: user.id, topic: "SECURITY_LOGIN", dedupeKey: `security-login:${challenge.id}`, payload: { signedInAt: new Date().toISOString() } }, update: {} });
       return { ok: true as const, user: { userId: user.id, role, displayName: challenge.displayName ?? "NyumbaPap user" } };
     }
 

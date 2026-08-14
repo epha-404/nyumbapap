@@ -39,6 +39,7 @@ Record backup age, restore duration, document counts for critical collections, a
 ## Launch gates
 
 - Public HTTPS origins, stable Daraja callback, CSP, monitoring alerts, and secrets are configured.
+- NES API and webhook secrets are configured, `/api/webhooks/nes` is registered for all lifecycle events, and the protected email-outbox job runs at least once per minute.
 - Backup jobs have alerted successfully and at least one independent restore drill meets the agreed RPO/RTO.
 - Notification outbox consumers, reconciliation, malware scanning, retention jobs, incident response, and customer-support escalation are operational.
 - Legal notices and contact details are approved; accessibility findings have owners and no launch-blocking issues remain.
