@@ -53,7 +53,7 @@ export async function PATCH(request: Request, { params }: Context) {
         listingState = "APPROVED";
         await tx.listing.update({
           where: { id: media.listingId },
-          data: { verificationState: "APPROVED", status: "PUBLISHED", publishedAt: reviewedAt, expiresAt: verificationExpiresAt(VerificationKind.LISTING, reviewedAt) }
+          data: { verificationState: "APPROVED", status: "PUBLISHED", lifecycleStatus: "ACTIVE", lastConfirmedAt: reviewedAt, pendingConfirmationSince: null, unlistedAt: null, publishedAt: reviewedAt, expiresAt: verificationExpiresAt(VerificationKind.LISTING, reviewedAt) }
         });
       } else if (pendingCount === 0) {
         listingState = "REJECTED";

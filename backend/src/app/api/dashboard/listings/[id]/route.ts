@@ -51,6 +51,7 @@ export async function GET(request: Request, { params }: Context) {
       description: listing.description,
       status: listing.status,
       verificationState: listing.verificationState,
+      lifecycleStatus: listing.lifecycleStatus,
       county: listing.unit.property.county,
       town: listing.unit.property.town,
       area: listing.unit.property.approximateArea,

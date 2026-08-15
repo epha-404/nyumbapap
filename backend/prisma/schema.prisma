@@ -2,6 +2,7 @@ generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
+
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
@@ -47,6 +48,27 @@ enum ListingStatus {
   REJECTED
 }
 
+enum ListingLifecycleStatus {
+  ACTIVE
+  PENDING_CONFIRMATION
+  UNLISTED
+}
+
+enum AvailabilityReportResponse {
+  STILL_AVAILABLE
+  ALREADY_RENTED
+  NO_RESPONSE
+}
+
+enum NotificationChannelType {
+  EMAIL
+  SMS
+}
+
+enum UnlockRefundState {
+  CREDITED
+}
+
 enum UnitAvailability {
   AVAILABLE
   RESERVED
@@ -89,372 +111,439 @@ enum ReportStatus {
 }
 
 type GeoPoint {
-  type String
+  type        String
   coordinates Float[]
 }
 
 model User {
-  id String @id @map("_id") @default(cuid())
-  email String @unique
-  emailVerifiedAt DateTime? @map("email_verified_at")
-  requiresEmailCapture Boolean @default(false) @map("requires_email_capture")
-  phoneEncrypted Bytes? @map("phone_encrypted")
-  phoneHash String? @map("phone_hash")
-  emailEncrypted Bytes? @map("email_encrypted")
-  emailHash String? @map("email_hash")
-  role UserRole @default(TENANT)
-  status UserStatus @default(PENDING)
-  verifiedAt DateTime? @map("verified_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  landlordProfile LandlordProfile?
-  agentProfile AgentProfile?
-  ownedProperties Property[] @relation("PropertyOwner")
-  payments Payment[]
-  unlocks TenantUnlock[]
-  enquiries Enquiry[]
-  viewingRequests ViewingRequest[] @relation("TenantViewings")
-  reports Report[] @relation("Reporter")
-  reviewedReports Report[] @relation("ReportReviewer")
-  verifications VerificationRecord[] @relation("VerificationSubject")
+  id                     String               @id @default(cuid()) @map("_id")
+  email                  String               @unique
+  emailVerifiedAt        DateTime?            @map("email_verified_at")
+  requiresEmailCapture   Boolean              @default(false) @map("requires_email_capture")
+  phoneEncrypted         Bytes?               @map("phone_encrypted")
+  phoneHash              String?              @map("phone_hash")
+  emailEncrypted         Bytes?               @map("email_encrypted")
+  emailHash              String?              @map("email_hash")
+  role                   UserRole             @default(TENANT)
+  status                 UserStatus           @default(PENDING)
+  verifiedAt             DateTime?            @map("verified_at")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+  landlordProfile        LandlordProfile?
+  agentProfile           AgentProfile?
+  ownedProperties        Property[]           @relation("PropertyOwner")
+  payments               Payment[]
+  unlocks                TenantUnlock[]
+  enquiries              Enquiry[]
+  viewingRequests        ViewingRequest[]     @relation("TenantViewings")
+  reports                Report[]             @relation("Reporter")
+  reviewedReports        Report[]             @relation("ReportReviewer")
+  verifications          VerificationRecord[] @relation("VerificationSubject")
   performedVerifications VerificationRecord[] @relation("VerificationReviewer")
-  auditEvents AuditEvent[] @relation("AuditActor")
-  notifications NotificationOutbox[]
-  account AppAccount?
-  otpChallenges AuthOtpChallenge[]
-  otpCodes OtpCode[]
+  auditEvents            AuditEvent[]         @relation("AuditActor")
+  notifications          NotificationOutbox[]
+  unlockRefunds          UnlockRefund[]
+  account                AppAccount?
+  otpChallenges          AuthOtpChallenge[]
+  otpCodes               OtpCode[]
+
   @@map("users")
 }
 
 model OtpCode {
-  id String @id @map("_id") @default(cuid())
-  userId String? @map("user_id")
-  email String
-  codeHash String @map("code_hash")
-  purpose OtpPurpose
-  displayName String? @map("display_name")
-  registrationRole UserRole? @map("registration_role")
-  deviceHash String @map("device_hash")
-  attemptCount Int @default(0) @map("attempt_count")
-  maxAttempts Int @default(5) @map("max_attempts")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  consumedAt DateTime? @map("consumed_at")
-  providerMessageId String? @map("provider_message_id")
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String     @id @default(cuid()) @map("_id")
+  userId            String?    @map("user_id")
+  email             String
+  codeHash          String     @map("code_hash")
+  purpose           OtpPurpose
+  displayName       String?    @map("display_name")
+  registrationRole  UserRole?  @map("registration_role")
+  deviceHash        String     @map("device_hash")
+  attemptCount      Int        @default(0) @map("attempt_count")
+  maxAttempts       Int        @default(5) @map("max_attempts")
+  expiresAt         DateTime   @map("expires_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  consumedAt        DateTime?  @map("consumed_at")
+  providerMessageId String?    @map("provider_message_id")
+  user              User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([email, purpose, createdAt])
   @@index([expiresAt])
   @@map("otp_codes")
 }
 
 model LandlordProfile {
-  id String @id @map("_id") @default(cuid())
-  userId String @unique @map("user_id")
-  displayName String @map("display_name")
-  identityNumberEncrypted Bytes? @map("identity_number_encrypted")
-  identityNumberHash String? @map("identity_number_hash")
-  verificationState VerificationState @default(NOT_SUBMITTED) @map("verification_state")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                      String            @id @default(cuid()) @map("_id")
+  userId                  String            @unique @map("user_id")
+  displayName             String            @map("display_name")
+  identityNumberEncrypted Bytes?            @map("identity_number_encrypted")
+  identityNumberHash      String?           @map("identity_number_hash")
+  verificationState       VerificationState @default(NOT_SUBMITTED) @map("verification_state")
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("landlord_profiles")
 }
 
 model AgentProfile {
-  id String @id @map("_id") @default(cuid())
-  userId String @unique @map("user_id")
-  agencyName String @map("agency_name")
-  licenceEncrypted Bytes? @map("licence_encrypted")
-  licenceHash String? @map("licence_hash")
+  id                String            @id @default(cuid()) @map("_id")
+  userId            String            @unique @map("user_id")
+  agencyName        String            @map("agency_name")
+  licenceEncrypted  Bytes?            @map("licence_encrypted")
+  licenceHash       String?           @map("licence_hash")
   verificationState VerificationState @default(NOT_SUBMITTED) @map("verification_state")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("agent_profiles")
 }
 
 model Property {
-  id String @id @map("_id") @default(cuid())
-  ownerId String @map("owner_id")
-  county String
-  town String
-  approximateArea String @map("approximate_area")
-  approximateLatitude Float? @map("approximate_latitude")
-  approximateLongitude Float? @map("approximate_longitude")
-  searchPoint GeoPoint? @map("search_point")
-  exactAddressEncrypted Bytes @map("exact_address_encrypted")
-  exactCoordinatesEncrypted Bytes @map("exact_coordinates_encrypted")
-  contactEncrypted Bytes @map("contact_encrypted")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  owner User @relation("PropertyOwner", fields: [ownerId], references: [id])
-  units RentalUnit[]
+  id                        String       @id @default(cuid()) @map("_id")
+  ownerId                   String       @map("owner_id")
+  county                    String
+  town                      String
+  approximateArea           String       @map("approximate_area")
+  approximateLatitude       Float?       @map("approximate_latitude")
+  approximateLongitude      Float?       @map("approximate_longitude")
+  searchPoint               GeoPoint?    @map("search_point")
+  exactAddressEncrypted     Bytes        @map("exact_address_encrypted")
+  exactCoordinatesEncrypted Bytes        @map("exact_coordinates_encrypted")
+  contactEncrypted          Bytes        @map("contact_encrypted")
+  createdAt                 DateTime     @default(now()) @map("created_at")
+  updatedAt                 DateTime     @updatedAt @map("updated_at")
+  owner                     User         @relation("PropertyOwner", fields: [ownerId], references: [id])
+  units                     RentalUnit[]
+
   @@index([county, town])
   @@map("properties")
 }
 
 model RentalUnit {
-  id String @id @map("_id") @default(cuid())
-  propertyId String @map("property_id")
-  label String?
-  unitType String @map("unit_type")
-  bedrooms Int
-  bathrooms Int
-  sizeSquareMetres Int? @map("size_square_metres")
-  monthlyRentKes Int @map("monthly_rent_kes")
-  depositKes Int? @map("deposit_kes")
-  amenities Json @default("[]")
-  availability UnitAvailability @default(UNKNOWN)
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  listings Listing[]
+  id               String           @id @default(cuid()) @map("_id")
+  propertyId       String           @map("property_id")
+  label            String?
+  unitType         String           @map("unit_type")
+  bedrooms         Int
+  bathrooms        Int
+  sizeSquareMetres Int?             @map("size_square_metres")
+  monthlyRentKes   Int              @map("monthly_rent_kes")
+  depositKes       Int?             @map("deposit_kes")
+  amenities        Json             @default("[]")
+  availability     UnitAvailability @default(UNKNOWN)
+  property         Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  listings         Listing[]
+
   @@map("rental_units")
 }
 
 model Listing {
-  id String @id @map("_id") @default(cuid())
-  unitId String @map("unit_id")
-  title String
-  description String
-  creationOwnerId String? @map("creation_owner_id")
-  idempotencyKey String? @map("idempotency_key")
-  status ListingStatus @default(DRAFT)
-  verificationState VerificationState @default(NOT_SUBMITTED) @map("verification_state")
-  publishedAt DateTime? @map("published_at")
-  expiresAt DateTime? @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  unit RentalUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  media ListingMedia[]
-  payments Payment[]
-  unlocks TenantUnlock[]
-  enquiries Enquiry[]
-  viewingRequests ViewingRequest[]
-  reports Report[]
-  dailyViews ListingDailyView[]
+  id                       String                 @id @default(cuid()) @map("_id")
+  unitId                   String                 @map("unit_id")
+  title                    String
+  description              String
+  creationOwnerId          String?                @map("creation_owner_id")
+  idempotencyKey           String?                @map("idempotency_key")
+  status                   ListingStatus          @default(DRAFT)
+  verificationState        VerificationState      @default(NOT_SUBMITTED) @map("verification_state")
+  publishedAt              DateTime?              @map("published_at")
+  expiresAt                DateTime?              @map("expires_at")
+  lifecycleStatus          ListingLifecycleStatus @default(ACTIVE) @map("lifecycle_status")
+  lastConfirmedAt          DateTime               @default(now()) @map("last_confirmed_at")
+  pendingConfirmationSince DateTime?              @map("pending_confirmation_since")
+  unlistedAt               DateTime?              @map("unlisted_at")
+  refundCount              Int                    @default(0) @map("refund_count")
+  createdAt                DateTime               @default(now()) @map("created_at")
+  updatedAt                DateTime               @updatedAt @map("updated_at")
+  unit                     RentalUnit             @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  media                    ListingMedia[]
+  payments                 Payment[]
+  unlocks                  TenantUnlock[]
+  enquiries                Enquiry[]
+  viewingRequests          ViewingRequest[]
+  reports                  Report[]
+  dailyViews               ListingDailyView[]
+  availabilityReports      AvailabilityReport[]
+  unlockRefunds            UnlockRefund[]
+
   @@index([status, publishedAt])
+  @@index([lifecycleStatus, lastConfirmedAt])
+  @@index([lifecycleStatus, pendingConfirmationSince])
   @@map("listings")
 }
 
 model ListingDailyView {
-  id String @id @map("_id") @default(cuid())
-  listingId String @map("listing_id")
-  viewerKeyHash String @map("viewer_key_hash")
-  viewDate DateTime @map("view_date")
-  createdAt DateTime @default(now()) @map("created_at")
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid()) @map("_id")
+  listingId     String   @map("listing_id")
+  viewerKeyHash String   @map("viewer_key_hash")
+  viewDate      DateTime @map("view_date")
+  createdAt     DateTime @default(now()) @map("created_at")
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
   @@unique([listingId, viewerKeyHash, viewDate])
   @@index([listingId, viewDate])
   @@map("listing_daily_views")
 }
 
 model ListingMedia {
-  id String @id @map("_id") @default(cuid())
-  listingId String @map("listing_id")
-  storageKey String @unique @map("storage_key")
-  mimeType String @map("mime_type")
-  width Int
-  height Int
-  sizeBytes Int @map("size_bytes")
-  variants Json @default("[]")
-  sortOrder Int @default(0) @map("sort_order")
+  id              String               @id @default(cuid()) @map("_id")
+  listingId       String               @map("listing_id")
+  storageKey      String               @unique @map("storage_key")
+  mimeType        String               @map("mime_type")
+  width           Int
+  height          Int
+  sizeBytes       Int                  @map("size_bytes")
+  variants        Json                 @default("[]")
+  sortOrder       Int                  @default(0) @map("sort_order")
   moderationState MediaModerationState @default(PENDING) @map("moderation_state")
-  createdAt DateTime @default(now()) @map("created_at")
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  listing         Listing              @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
   @@index([listingId, sortOrder])
   @@map("listing_media")
 }
 
 model Payment {
-  id String @id @map("_id") @default(cuid())
-  userId String @map("user_id")
-  listingId String? @map("listing_id")
-  purpose PaymentPurpose
-  amountKes Int @map("amount_kes")
-  state PaymentState @default(PENDING)
-  merchantRequestId String? @map("merchant_request_id")
-  checkoutRequestId String? @map("checkout_request_id")
-  providerReceipt String? @map("provider_receipt")
-  callbackHash String? @map("callback_hash")
-  resultCode Int? @map("result_code")
-  resultDescription String? @map("result_description")
-  expiresAt DateTime? @map("expires_at")
-  reconciledAt DateTime? @map("reconciled_at")
-  paidAt DateTime? @map("paid_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  user User @relation(fields: [userId], references: [id])
-  listing Listing? @relation(fields: [listingId], references: [id])
-  unlock TenantUnlock?
+  id                String         @id @default(cuid()) @map("_id")
+  userId            String         @map("user_id")
+  listingId         String?        @map("listing_id")
+  purpose           PaymentPurpose
+  amountKes         Int            @map("amount_kes")
+  state             PaymentState   @default(PENDING)
+  merchantRequestId String?        @map("merchant_request_id")
+  checkoutRequestId String?        @map("checkout_request_id")
+  providerReceipt   String?        @map("provider_receipt")
+  callbackHash      String?        @map("callback_hash")
+  resultCode        Int?           @map("result_code")
+  resultDescription String?        @map("result_description")
+  expiresAt         DateTime?      @map("expires_at")
+  reconciledAt      DateTime?      @map("reconciled_at")
+  paidAt            DateTime?      @map("paid_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  user              User           @relation(fields: [userId], references: [id])
+  listing           Listing?       @relation(fields: [listingId], references: [id])
+  unlock            TenantUnlock?
+
   @@index([userId, state])
   @@index([state, expiresAt])
   @@map("payments")
 }
 
 model UnlockFeeConfig {
-  id String @id @map("_id") @default("default")
-  rate Float
-  floorKes Int @map("floor_kes")
-  ceilingKes Int @map("ceiling_kes")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default("default") @map("_id")
+  rate       Float
+  floorKes   Int      @map("floor_kes")
+  ceilingKes Int      @map("ceiling_kes")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
   @@map("unlock_fee_config")
 }
 
 model TenantUnlock {
-  id String @id @map("_id") @default(cuid())
-  tenantId String @map("tenant_id")
-  listingId String @map("listing_id")
-  paymentId String @unique @map("payment_id")
-  grantedAt DateTime @default(now()) @map("granted_at")
-  expiresAt DateTime? @map("expires_at")
-  tenant User @relation(fields: [tenantId], references: [id])
-  listing Listing @relation(fields: [listingId], references: [id])
-  payment Payment @relation(fields: [paymentId], references: [id])
+  id                 String              @id @default(cuid()) @map("_id")
+  tenantId           String              @map("tenant_id")
+  listingId          String              @map("listing_id")
+  paymentId          String              @unique @map("payment_id")
+  grantedAt          DateTime            @default(now()) @map("granted_at")
+  expiresAt          DateTime?           @map("expires_at")
+  tenant             User                @relation(fields: [tenantId], references: [id])
+  listing            Listing             @relation(fields: [listingId], references: [id])
+  payment            Payment             @relation(fields: [paymentId], references: [id])
+  availabilityReport AvailabilityReport?
+  refund             UnlockRefund?
+
   @@unique([tenantId, listingId])
   @@map("tenant_unlocks")
 }
 
+model AvailabilityReport {
+  id         String                     @id @default(cuid()) @map("_id")
+  listingId  String                     @map("listing_id")
+  unlockId   String                     @unique @map("unlock_id")
+  channel    NotificationChannelType    @default(EMAIL)
+  response   AvailabilityReportResponse @default(NO_RESPONSE)
+  reportedAt DateTime?                  @map("reported_at")
+  createdAt  DateTime                   @default(now()) @map("created_at")
+  listing    Listing                    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  unlock     TenantUnlock               @relation(fields: [unlockId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, response, reportedAt])
+  @@map("availability_reports")
+}
+
+model UnlockRefund {
+  id        String            @id @default(cuid()) @map("_id")
+  unlockId  String            @unique @map("unlock_id")
+  listingId String            @map("listing_id")
+  tenantId  String            @map("tenant_id")
+  amountKes Int               @map("amount_kes")
+  state     UnlockRefundState @default(CREDITED)
+  reason    String
+  createdAt DateTime          @default(now()) @map("created_at")
+  unlock    TenantUnlock      @relation(fields: [unlockId], references: [id], onDelete: Cascade)
+  listing   Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  tenant    User              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([listingId, createdAt])
+  @@map("unlock_refunds")
+}
+
 model Enquiry {
-  id String @id @map("_id") @default(cuid())
-  tenantId String @map("tenant_id")
-  listingId String @map("listing_id")
-  message String
-  state EnquiryState @default(OPEN)
-  createdAt DateTime @default(now()) @map("created_at")
-  tenant User @relation(fields: [tenantId], references: [id])
-  listing Listing @relation(fields: [listingId], references: [id])
+  id        String       @id @default(cuid()) @map("_id")
+  tenantId  String       @map("tenant_id")
+  listingId String       @map("listing_id")
+  message   String
+  state     EnquiryState @default(OPEN)
+  createdAt DateTime     @default(now()) @map("created_at")
+  tenant    User         @relation(fields: [tenantId], references: [id])
+  listing   Listing      @relation(fields: [listingId], references: [id])
+
   @@index([tenantId, createdAt])
   @@index([listingId, state])
   @@map("enquiries")
 }
 
 model ViewingRequest {
-  id String @id @map("_id") @default(cuid())
-  tenantId String @map("tenant_id")
-  listingId String @map("listing_id")
+  id           String   @id @default(cuid()) @map("_id")
+  tenantId     String   @map("tenant_id")
+  listingId    String   @map("listing_id")
   requestedFor DateTime @map("requested_for")
-  status String @default("PENDING")
-  notes String?
-  createdAt DateTime @default(now()) @map("created_at")
-  tenant User @relation("TenantViewings", fields: [tenantId], references: [id])
-  listing Listing @relation(fields: [listingId], references: [id])
+  status       String   @default("PENDING")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  tenant       User     @relation("TenantViewings", fields: [tenantId], references: [id])
+  listing      Listing  @relation(fields: [listingId], references: [id])
+
   @@index([tenantId, createdAt])
   @@index([listingId, status])
   @@map("viewing_requests")
 }
 
 model Report {
-  id String @id @map("_id") @default(cuid())
-  reporterId String @map("reporter_id")
-  listingId String @map("listing_id")
-  reason String
-  details String?
-  status ReportStatus @default(OPEN)
-  reviewerId String? @map("reviewer_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  resolvedAt DateTime? @map("resolved_at")
-  reporter User @relation("Reporter", fields: [reporterId], references: [id])
-  reviewer User? @relation("ReportReviewer", fields: [reviewerId], references: [id])
-  listing Listing @relation(fields: [listingId], references: [id])
+  id         String       @id @default(cuid()) @map("_id")
+  reporterId String       @map("reporter_id")
+  listingId  String       @map("listing_id")
+  reason     String
+  details    String?
+  status     ReportStatus @default(OPEN)
+  reviewerId String?      @map("reviewer_id")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  resolvedAt DateTime?    @map("resolved_at")
+  reporter   User         @relation("Reporter", fields: [reporterId], references: [id])
+  reviewer   User?        @relation("ReportReviewer", fields: [reviewerId], references: [id])
+  listing    Listing      @relation(fields: [listingId], references: [id])
+
   @@index([listingId, status])
   @@index([reporterId, createdAt])
   @@map("reports")
 }
 
 model VerificationRecord {
-  id String @id @map("_id") @default(cuid())
-  subjectUserId String @map("subject_user_id")
-  reviewerId String? @map("reviewer_id")
-  kind String
-  state VerificationState @default(PENDING)
-  documentStorageKeyEncrypted Bytes? @map("document_storage_key_encrypted")
-  documentHash String? @map("document_hash")
-  notesEncrypted Bytes? @map("notes_encrypted")
-  expiresAt DateTime? @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  reviewedAt DateTime? @map("reviewed_at")
-  subject User @relation("VerificationSubject", fields: [subjectUserId], references: [id])
-  reviewer User? @relation("VerificationReviewer", fields: [reviewerId], references: [id])
+  id                          String            @id @default(cuid()) @map("_id")
+  subjectUserId               String            @map("subject_user_id")
+  reviewerId                  String?           @map("reviewer_id")
+  kind                        String
+  state                       VerificationState @default(PENDING)
+  documentStorageKeyEncrypted Bytes?            @map("document_storage_key_encrypted")
+  documentHash                String?           @map("document_hash")
+  notesEncrypted              Bytes?            @map("notes_encrypted")
+  expiresAt                   DateTime?         @map("expires_at")
+  createdAt                   DateTime          @default(now()) @map("created_at")
+  reviewedAt                  DateTime?         @map("reviewed_at")
+  subject                     User              @relation("VerificationSubject", fields: [subjectUserId], references: [id])
+  reviewer                    User?             @relation("VerificationReviewer", fields: [reviewerId], references: [id])
+
   @@map("verification_records")
 }
 
 model AuditEvent {
-  id String @id @map("_id") @default(cuid())
-  actorId String? @map("actor_id")
-  action String
-  entityType String @map("entity_type")
-  entityId String @map("entity_id")
-  requestId String? @map("request_id")
-  ipHash String? @map("ip_hash")
-  metadata Json @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+  id         String   @id @default(cuid()) @map("_id")
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  requestId  String?  @map("request_id")
+  ipHash     String?  @map("ip_hash")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+
   @@index([entityType, entityId, createdAt])
   @@map("audit_events")
 }
 
 model NotificationOutbox {
-  id String @id @map("_id") @default(cuid())
-  recipientId String @map("recipient_id")
-  topic String
-  payload Json
-  dedupeKey String @unique @map("dedupe_key")
-  status String @default("PENDING")
-  attempts Int @default(0)
-  availableAt DateTime @default(now()) @map("available_at")
+  id          String    @id @default(cuid()) @map("_id")
+  recipientId String    @map("recipient_id")
+  topic       String
+  payload     Json
+  dedupeKey   String    @unique @map("dedupe_key")
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  availableAt DateTime  @default(now()) @map("available_at")
   processedAt DateTime? @map("processed_at")
-  lastError String? @map("last_error")
-  createdAt DateTime @default(now()) @map("created_at")
-  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  recipient   User      @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
   @@index([status, availableAt])
   @@index([recipientId, createdAt])
   @@map("notification_outbox")
 }
 
 model EmailDeliveryEvent {
-  id String @id @map("_id")
-  eventType String @map("event_type")
-  messageId String? @map("message_id")
+  id         String   @id @map("_id")
+  eventType  String   @map("event_type")
+  messageId  String?  @map("message_id")
   occurredAt DateTime @map("occurred_at")
-  payload Json
-  createdAt DateTime @default(now()) @map("created_at")
+  payload    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+
   @@index([eventType, occurredAt])
   @@index([messageId, occurredAt])
   @@map("email_delivery_events")
 }
 
 model AppAccount {
-  id String @id @map("_id")
-  displayName String @map("display_name")
-  passwordHash String? @map("password_hash")
-  createdAt DateTime @default(now()) @map("created_at")
-  user User @relation(fields: [id], references: [id], onDelete: Cascade)
+  id           String   @id @map("_id")
+  displayName  String   @map("display_name")
+  passwordHash String?  @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [id], references: [id], onDelete: Cascade)
+
   @@map("app_accounts")
 }
 
 model AuthOtpChallenge {
-  id String @id @map("_id")
-  phoneHash String @map("phone_hash")
-  phoneEncrypted Bytes @map("phone_encrypted")
-  codeHash String @map("code_hash")
-  mode String
-  userId String? @map("user_id")
-  displayName String? @map("display_name")
-  registrationRole UserRole? @map("registration_role")
-  deviceHash String @map("device_hash")
-  ipHash String @map("ip_hash")
-  attemptsRemaining Int @default(5) @map("attempts_remaining")
-  expiresAt DateTime @map("expires_at")
-  consumedAt DateTime? @map("consumed_at")
-  providerMessageId String? @map("provider_message_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @map("_id")
+  phoneHash         String    @map("phone_hash")
+  phoneEncrypted    Bytes     @map("phone_encrypted")
+  codeHash          String    @map("code_hash")
+  mode              String
+  userId            String?   @map("user_id")
+  displayName       String?   @map("display_name")
+  registrationRole  UserRole? @map("registration_role")
+  deviceHash        String    @map("device_hash")
+  ipHash            String    @map("ip_hash")
+  attemptsRemaining Int       @default(5) @map("attempts_remaining")
+  expiresAt         DateTime  @map("expires_at")
+  consumedAt        DateTime? @map("consumed_at")
+  providerMessageId String?   @map("provider_message_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  user              User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([phoneHash, createdAt])
   @@index([expiresAt])
   @@map("auth_otp_challenges")
 }
 
 model AuthRateLimit {
-  id String @id @map("_id")
-  action String
-  keyHash String @map("key_hash")
-  count Int
+  id              String   @id @map("_id")
+  action          String
+  keyHash         String   @map("key_hash")
+  count           Int
   windowExpiresAt DateTime @map("window_expires_at")
+
   @@unique([action, keyHash])
   @@map("auth_rate_limits")
 }

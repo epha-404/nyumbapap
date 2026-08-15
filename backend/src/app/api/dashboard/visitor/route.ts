@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const session = authorization.principal;
 
   const [listings, unlocks, enquiries, viewings] = await Promise.all([
-    db.listing.findMany({ where: { status: "PUBLISHED" }, include: { unit: { include: { property: true } }, media: { where: { moderationState: "APPROVED" }, orderBy: { sortOrder: "asc" }, select: { id: true } } }, orderBy: { publishedAt: "desc" }, take: 30 }),
+    db.listing.findMany({ where: { status: "PUBLISHED", lifecycleStatus: "ACTIVE" }, include: { unit: { include: { property: true } }, media: { where: { moderationState: "APPROVED" }, orderBy: { sortOrder: "asc" }, select: { id: true } } }, orderBy: { publishedAt: "desc" }, take: 30 }),
     db.tenantUnlock.count({ where: { tenantId: session.userId } }),
     db.enquiry.count({ where: { tenantId: session.userId } }),
     db.viewingRequest.count({ where: { tenantId: session.userId } })

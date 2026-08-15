@@ -22,7 +22,7 @@ export async function POST(request: Request, { params }: Context) {
     if (listing.unit.property.ownerId !== authorization.principal.userId) return "forbidden" as const;
     if (listing.status !== "EXPIRED" || listing.verificationState !== "APPROVED" || listing.unit.availability !== "AVAILABLE") return "invalid" as const;
     const expiresAt = listingExpiry(now);
-    await tx.listing.update({ where: { id }, data: { status: "PUBLISHED", publishedAt: now, expiresAt } });
+    await tx.listing.update({ where: { id }, data: { status: "PUBLISHED", lifecycleStatus: "ACTIVE", lastConfirmedAt: now, pendingConfirmationSince: null, unlistedAt: null, publishedAt: now, expiresAt } });
     await tx.notificationOutbox.create({ data: outboxMessage({ recipientId: authorization.principal.userId, topic: "LISTING_RECONFIRMED", dedupeKey: `listing-reconfirmed:${id}:${now.toISOString()}`, payload: { listingId: id, expiresAt: expiresAt.toISOString() } }) });
     return { expiresAt };
   });

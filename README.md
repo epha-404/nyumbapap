@@ -54,6 +54,25 @@ NES is the selected transactional provider for email OTP; it implements the `Ema
 
 MongoDB must run as a replica set because payment callbacks and unlock creation use multi-document transactions. Run `npm run mongo:start`, initialize `rs0` once, then run `npm run db:setup --workspace backend` to synchronize Prisma indexes and install partial unique plus `2dsphere` indexes.
 
+## Listing availability lifecycle
+
+The existing protected `POST /api/internal/listings/expire` cron now runs the
+complete availability sweep. Active listings enter confirmation after 21 days
+without landlord confirmation or after two tenants report them rented within
+seven days. The landlord receives a signed email action and has 72 hours to
+confirm before the listing is soft-unlisted. The same sweep creates one tenant
+email check three days after each paid unlock. Schedule the email outbox worker
+as described above so queued checks are delivered.
+
+Availability action signatures use `LIFECYCLE_ACTION_SECRET` (falling back to
+`SESSION_SECRET` for compatibility). Africa's Talking SMS implements the same
+notification interface but is not part of the active send path; without
+`AFRICASTALKING_API_KEY` it is not even instantiated. Qualifying early
+"already rented" reports create an idempotent internal credit for the unlock
+fee. This credit ledger is not an M-Pesa reversal; cash reversal remains an
+operations workflow. A listing is capped at three automatic credits, after
+which an OPEN report enters the existing moderation queue.
+
 ## Data and privacy boundaries
 
 The schema covers users/roles, landlord and agent profiles, properties, rental units, listings, media, payments, tenant unlocks, enquiries, viewing requests, reports, verification records, and audit events.

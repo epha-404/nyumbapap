@@ -9,13 +9,13 @@ export async function GET(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid search parameters" }, { status: 400 });
   const { town, maxRent, take } = parsed.data;
   const [listings, vacantHomes, coveredTowns, totalLandlords, verifiedLandlords, successfulUnlocks] = await Promise.all([db.listing.findMany({
-    where: { status: "PUBLISHED", ...(town ? { unit: { property: { town: { equals: town, mode: "insensitive" } } } } : {}), ...(maxRent ? { unit: { monthlyRentKes: { lte: maxRent } } } : {}) },
+    where: { status: "PUBLISHED", lifecycleStatus: "ACTIVE", ...(town ? { unit: { property: { town: { equals: town, mode: "insensitive" } } } } : {}), ...(maxRent ? { unit: { monthlyRentKes: { lte: maxRent } } } : {}) },
     take,
     orderBy: { publishedAt: "desc" },
     select: { id: true, title: true, verificationState: true, expiresAt: true, unit: { select: { unitType: true, bathrooms: true, sizeSquareMetres: true, monthlyRentKes: true, property: { select: { town: true, approximateArea: true, approximateLatitude: true, approximateLongitude: true } } } }, media: { where: { moderationState: "APPROVED" }, orderBy: { sortOrder: "asc" }, take: 1, select: { id: true, width: true, height: true } } }
   }),
-    db.listing.count({ where: { status: "PUBLISHED" } }),
-    db.property.groupBy({ by: ["town"], where: { units: { some: { listings: { some: { status: "PUBLISHED" } } } } } }),
+    db.listing.count({ where: { status: "PUBLISHED", lifecycleStatus: "ACTIVE" } }),
+    db.property.groupBy({ by: ["town"], where: { units: { some: { listings: { some: { status: "PUBLISHED", lifecycleStatus: "ACTIVE" } } } } } }),
     db.landlordProfile.count(),
     db.landlordProfile.count({ where: { verificationState: "APPROVED" } }),
     db.tenantUnlock.count()

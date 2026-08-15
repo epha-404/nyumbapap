@@ -21,6 +21,10 @@ const serverEnvSchema = z.object({
   MPESA_BASE_URL_SANDBOX: z.string().url().default("https://sandbox.safaricom.co.ke"),
   MPESA_BASE_URL_PRODUCTION: z.string().url().default("https://api.safaricom.co.ke"),
   LIFECYCLE_JOB_SECRET: z.string().min(32).optional()
+  ,LIFECYCLE_ACTION_SECRET: z.string().min(32).optional()
+  ,AFRICASTALKING_API_KEY: z.string().min(1).optional()
+  ,AFRICASTALKING_USERNAME: z.string().min(1).optional()
+  ,AFRICASTALKING_SENDER_ID: z.string().min(1).optional()
   ,NES_API_URL: z.string().url().default("https://nes.nisoko.co.ke")
   ,NES_API_KEY: z.string().startsWith("nsk_live_").optional()
   ,NES_SECURITY_FROM: z.string().email().default("security@odafood.com")

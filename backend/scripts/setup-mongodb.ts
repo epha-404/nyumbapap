@@ -26,6 +26,14 @@ async function main() {
       { creation_owner_id: 1, idempotency_key: 1 },
       { unique: true, partialFilterExpression: { creation_owner_id: { $type: "string" }, idempotency_key: { $type: "string" } }, name: "listings_owner_idempotency_partial_unique" }
     );
+    await database.collection("listings").updateMany(
+      { lifecycle_status: { $exists: false } },
+      [{ $set: {
+        lifecycle_status: "ACTIVE",
+        last_confirmed_at: { $ifNull: ["$created_at", "$$NOW"] },
+        refund_count: 0
+      } }]
+    );
     console.log("MongoDB sparse uniqueness and geospatial indexes are ready");
   } finally { await client.close(); }
 }
