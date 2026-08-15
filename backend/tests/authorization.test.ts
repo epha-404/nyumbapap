@@ -6,7 +6,8 @@ import {
   requireResourceOwner,
   Resource,
   Role,
-  roleFromStoredValue
+  roleFromStoredValue,
+  parseSessionRole
 } from "@/modules/auth/authorization";
 
 describe("authorization", () => {
@@ -24,7 +25,7 @@ describe("authorization", () => {
   it("normalizes legacy database roles before authorization", () => {
     expect(roleFromStoredValue("TENANT")).toBe(Role.CLIENT);
     expect(roleFromStoredValue("FINANCE")).toBe(Role.SUPPORT);
-    expect(roleFromStoredValue("UNKNOWN")).toBeNull();
+    expect(parseSessionRole("UNKNOWN")).toBeNull();
   });
 
   it("defines every resource explicitly for every role", () => {

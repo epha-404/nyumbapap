@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import type { AppRole } from "@nyumbapap/contracts";
 import * as DocumentPicker from "expo-document-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiJson } from "@/lib/api";
 import { Body, Button, Card, ErrorText, Field, H2 } from "./ui";
 
-type Onboarding = { role: "LANDLORD" | "AGENT"; name: string; verificationState: string; hasCredential: boolean };
+type Onboarding = { role: Extract<AppRole, "LANDLORD" | "AGENT">; name: string; verificationState: string; hasCredential: boolean };
 type PickedFile = { uri: string; name: string; mimeType: string };
 
 export function ProfessionalOnboarding() {

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { AppRole } from "@nyumbapap/contracts";
 import { PortalNav } from "@/components/portal-nav";
 import { ListingManager } from "@/components/listing-manager";
 import { ProfessionalOnboardingForm, type OnboardingData } from "@/components/professional-onboarding-form";
@@ -7,7 +8,7 @@ import styles from "../../portal.module.css";
 
 type DashboardData = {
   displayName: string;
-  role: "LANDLORD" | "AGENT" | "ADMIN";
+  role: Extract<AppRole, "LANDLORD" | "AGENT" | "ADMIN">;
   canViewFinancials: boolean;
   stats: { listings: number; activeListings: number; enquiries: number; views: number; unlocks: number; acceptedViewings: number; revenue: number | null };
   listings: Array<{ id: string; title: string; status: string; area: string; town: string; monthlyRentKes: number }>;

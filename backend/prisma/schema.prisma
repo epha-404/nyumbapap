@@ -211,6 +211,8 @@ model Listing {
   unitId String @map("unit_id")
   title String
   description String
+  creationOwnerId String? @map("creation_owner_id")
+  idempotencyKey String? @map("idempotency_key")
   status ListingStatus @default(DRAFT)
   verificationState VerificationState @default(NOT_SUBMITTED) @map("verification_state")
   publishedAt DateTime? @map("published_at")

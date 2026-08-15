@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
+import type { AppRole } from "@nyumbapap/contracts";
 import { backendFetch } from "@/lib/server-api";
 
-type SessionResponse = { session: { role: "ADMIN" | "LANDLORD" | "AGENT" | "CLIENT" | "VERIFIER" | "SUPPORT" } };
+type SessionResponse = { session: { role: AppRole } };
 
 export const dynamic = "force-dynamic";
 

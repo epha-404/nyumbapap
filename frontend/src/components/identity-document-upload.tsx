@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { AppRole } from "@nyumbapap/contracts";
 import { useRouter } from "next/navigation";
 import styles from "@/app/portal.module.css";
 import { csrfFetch } from "@/lib/api";
 
-export function IdentityDocumentUpload({ role, hasCredential, onUploaded }: { role: "LANDLORD" | "AGENT"; hasCredential: boolean; onUploaded?: () => void }) {
+export function IdentityDocumentUpload({ role, hasCredential, onUploaded }: { role: Extract<AppRole, "LANDLORD" | "AGENT">; hasCredential: boolean; onUploaded?: () => void }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");

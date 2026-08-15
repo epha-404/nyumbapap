@@ -6,6 +6,12 @@ import { professionalOnboardingSubmitted } from "@/modules/onboarding/profession
 import { verifyCsrfRequest } from "@/modules/auth/request-security";
 import { deriveCoarseLocation } from "@/modules/listings/location";
 
+const IDEMPOTENCY_KEY = /^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$/;
+
+function uniqueConflict(error: unknown) {
+  return Boolean(error && typeof error === "object" && "code" in error && error.code === "P2002");
+}
+
 export async function POST(request: Request) {
   if (!verifyCsrfRequest(request)) {
     return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
@@ -15,6 +21,13 @@ export async function POST(request: Request) {
   if (!(await professionalOnboardingSubmitted(authorization.principal))) {
     return NextResponse.json({ error: "Complete your professional onboarding before creating a listing." }, { status: 409 });
   }
+  const idempotencyKey = request.headers.get("idempotency-key")?.trim() ?? "";
+  if (!IDEMPOTENCY_KEY.test(idempotencyKey)) {
+    return NextResponse.json({ error: "A valid Idempotency-Key header is required" }, { status: 400 });
+  }
+  const ownerId = authorization.principal.userId;
+  const existing = await db.listing.findFirst({ where: { creationOwnerId: ownerId, idempotencyKey }, select: { id: true } });
+  if (existing) return NextResponse.json({ ok: true, id: existing.id, duplicate: true }, { status: 200 });
 
   const parsed = listingInputSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -27,11 +40,15 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Could not resolve this confirmed location. Please try again." }, { status: 502 });
   }
-  const listing = await db.$transaction(async (tx) => {
+  let listing: { id: string };
+  try {
+    listing = await db.$transaction(async (tx) => {
     const created = await tx.listing.create({
       data: {
       title: d.title,
       description: d.description,
+      creationOwnerId: ownerId,
+      idempotencyKey,
       status: "PENDING_REVIEW",
       verificationState: "PENDING",
       unit: {
@@ -46,7 +63,7 @@ export async function POST(request: Request) {
           availability: "AVAILABLE",
           property: {
             create: {
-              ownerId: authorization.principal.userId,
+              ownerId,
               county: d.county,
               town: coarse.town,
               approximateArea: coarse.area,
@@ -64,6 +81,12 @@ export async function POST(request: Request) {
       include: { unit: { select: { propertyId: true } } }
     });
     return created;
-  });
+    });
+  } catch (error) {
+    if (!uniqueConflict(error)) throw error;
+    const duplicate = await db.listing.findFirst({ where: { creationOwnerId: ownerId, idempotencyKey }, select: { id: true } });
+    if (!duplicate) throw error;
+    return NextResponse.json({ ok: true, id: duplicate.id, duplicate: true }, { status: 200 });
+  }
   return NextResponse.json({ ok: true, id: listing.id }, { status: 201 });
 }

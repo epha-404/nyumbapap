@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Action, authorizeRequest, Resource, Role } from "@/modules/auth/authorization";
 import { clientIpHash, verifyCsrfRequest } from "@/modules/auth/request-security";
 import { S3PrivateStorage } from "@/modules/storage/s3-storage";
+import type { PrivateObjectStorage } from "@/modules/storage/provider";
 import { ensureAuditEventsImmutable } from "@/modules/verification/audit";
 import { DocumentValidationError, protectDocumentStorageKey, validateIdentityDocument } from "@/modules/verification/documents";
 import { VerificationKind } from "@/modules/verification/policy";
@@ -37,18 +38,24 @@ export async function POST(request: Request) {
   });
   if (existing) return NextResponse.json({ error: "A document is already awaiting review" }, { status: 409 });
 
-  let prepared: ReturnType<typeof validateIdentityDocument>;
+  let prepared: Awaited<ReturnType<typeof validateIdentityDocument>>;
   let bytes: Buffer;
   try {
     bytes = Buffer.from(await document.arrayBuffer());
-    prepared = validateIdentityDocument(bytes, document.type);
+    prepared = await validateIdentityDocument(bytes, document.type);
   } catch (error) {
     if (error instanceof DocumentValidationError) return NextResponse.json({ error: error.message }, { status: 400 });
     throw error;
   }
 
-  const storage = S3PrivateStorage.fromEnvironment();
-  await storage.put({ key: prepared.key, body: bytes, contentType: document.type, cacheControl: "private, no-store" });
+  let storage: PrivateObjectStorage;
+  try {
+    storage = S3PrivateStorage.fromEnvironment();
+    await storage.put({ key: prepared.key, body: prepared.body, contentType: prepared.mimeType, cacheControl: "private, no-store" });
+  } catch (error) {
+    console.error("Identity document storage failed", { name: error instanceof Error ? error.name : "UnknownError", message: error instanceof Error ? error.message : String(error) });
+    return NextResponse.json({ error: "Private document storage is temporarily unavailable. Please retry." }, { status: 503, headers: { "Retry-After": "10" } });
+  }
   try {
     await ensureAuditEventsImmutable();
     const record = await db.$transaction(async (tx) => {

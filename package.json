@@ -6,6 +6,7 @@
     "backend",
     "frontend",
     "mobile"
+    ,"packages/contracts"
   ],
   "engines": {
     "node": ">=20.11.0"

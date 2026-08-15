@@ -1,13 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import type { AppRole } from "@nyumbapap/contracts";
 import { useRouter } from "next/navigation";
 import styles from "@/app/portal.module.css";
 import { csrfFetch } from "@/lib/api";
 import { IdentityDocumentUpload } from "./identity-document-upload";
 
 export type OnboardingData = {
-  role: "LANDLORD" | "AGENT";
+  role: Extract<AppRole, "LANDLORD" | "AGENT">;
   name: string;
   verificationState: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
   hasCredential: boolean;

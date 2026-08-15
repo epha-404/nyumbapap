@@ -38,4 +38,18 @@ describe("NisokoObjectStorage", () => {
     expect(fetchMock.mock.calls[1][0]).toContain("/download/room.webp");
     expect(fetchMock.mock.calls[2][0]).toBe("https://storage.nisoko.co.ke/api/v1/storage/files/file-id");
   });
+
+  it("retries transient upload failures with bounded backoff", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("unavailable", { status: 503 }))
+      .mockRejectedValueOnce(Object.assign(new Error("network"), { name: "TypeError" }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "file-id", filename: "room.webp", size: 5, content_type: "image/webp" }), { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const storage = new NisokoObjectStorage("test-key", "nyumba-pap-assets", "https://storage.nisoko.co.ke", sleep);
+    await expect(storage.put({ key: "room.webp", body: Buffer.from("image"), contentType: "image/webp" })).resolves.toMatchObject({ sizeBytes: 5 });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(sleep).toHaveBeenNthCalledWith(1, 250);
+    expect(sleep).toHaveBeenNthCalledWith(2, 500);
+  });
 });

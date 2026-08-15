@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import styles from "@/app/portal.module.css";
 import { apiPath, csrfFetch } from "@/lib/api";
@@ -42,6 +42,7 @@ export function ListingForm({
   const [point, setPoint] = useState({ latitude: initial?.latitude ?? -1.286389, longitude: initial?.longitude ?? 36.817223 });
   const [locationConfirmed, setLocationConfirmed] = useState(Boolean(initial?.locationConfirmed));
   const [address, setAddress] = useState(initial?.address ?? "");
+  const idempotencyKey = useRef(crypto.randomUUID());
 
   async function locate() {
     setLocating(true);
@@ -63,13 +64,13 @@ export function ListingForm({
     const body = Object.fromEntries(new FormData(event.currentTarget));
     const response = await csrfFetch(initial ? `dashboard/listings/${initial.id}` : "dashboard/listings", {
       method: initial ? "PUT" : "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(!initial ? { "idempotency-key": idempotencyKey.current } : {}) },
       body: JSON.stringify(body)
     });
     const result = await response.json().catch(() => ({}));
     setBusy(false);
     if (!response.ok) return setError(result.error ?? "Could not save listing");
-    if (!initial) event.currentTarget.reset();
+    if (!initial) { event.currentTarget.reset(); idempotencyKey.current = crypto.randomUUID(); }
     onSaved?.();
   }
 

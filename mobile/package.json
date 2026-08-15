@@ -13,6 +13,7 @@
     "export": "expo export --platform android"
   },
   "dependencies": {
+    "@nyumbapap/contracts": "0.1.0",
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/manrope": "^0.4.2",
     "@react-native-picker/picker": "^2.11.4",

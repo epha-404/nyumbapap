@@ -12,6 +12,7 @@ import { clientIpHash, verifyCsrfRequest } from "@/modules/auth/request-security
 import { ImageValidationError } from "@/modules/media/image-pipeline";
 import { saveListingImage } from "@/modules/media/save-listing-image";
 import { listingImageStorage } from "@/modules/storage/listing-image-storage";
+import { NisokoStorageError } from "@/modules/storage/nisoko-storage";
 
 type Context = { params: Promise<{ id: string }> };
 const MAX_LISTING_IMAGES = 12;
@@ -87,6 +88,9 @@ export async function POST(request: Request, { params }: Context) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
     if (error instanceof AuthorizationError) return authorizationErrorResponse(error);
+    if (error instanceof NisokoStorageError && error.retryable) {
+      return NextResponse.json({ error: "Media storage is temporarily unavailable. Your files were not lost from your device; please retry.", uploadState: "FAILED", retryable: true }, { status: 503, headers: { "Retry-After": "5" } });
+    }
     console.error("Listing image upload failed", { name: error instanceof Error ? error.name : "UnknownError" });
     return NextResponse.json({ error: "Could not store listing images" }, { status: 500 });
   }

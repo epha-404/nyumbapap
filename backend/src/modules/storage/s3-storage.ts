@@ -13,7 +13,7 @@ export class S3PrivateStorage implements PrivateObjectStorage {
     return new S3PrivateStorage(client, process.env.S3_BUCKET);
   }
   async put(input: { key: string; body: Buffer; contentType: string; cacheControl?: string }): Promise<StoredObject> {
-    await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: input.key, Body: input.body, ContentType: input.contentType, CacheControl: input.cacheControl }));
+    await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: input.key, Body: input.body, ContentType: input.contentType, CacheControl: input.cacheControl, ServerSideEncryption: "AES256" }));
     return { key: input.key, sizeBytes: input.body.length, contentType: input.contentType };
   }
   async get(key: string): Promise<RetrievedObject> {

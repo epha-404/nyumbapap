@@ -1,12 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { decryptField, encryptField } from "@/lib/crypto";
 
-const DOCUMENT_MIME_EXTENSIONS = {
-  "application/pdf": "pdf",
-  "image/jpeg": "jpg",
-  "image/png": "png"
-} as const;
-
+const DOCUMENT_MIME = new Set(["application/pdf", "image/jpeg", "image/png"]);
+const DANGEROUS_PDF_TOKENS = ["/javascript", "/js", "/openaction", "/aa", "/launch", "/embeddedfile"];
 export class DocumentValidationError extends Error {}
 
 function encryptionKey() {
@@ -15,30 +12,38 @@ function encryptionKey() {
   return key;
 }
 
-export function validateIdentityDocument(bytes: Buffer, mimeType: string) {
-  const extension = DOCUMENT_MIME_EXTENSIONS[mimeType as keyof typeof DOCUMENT_MIME_EXTENSIONS];
-  if (!extension) throw new DocumentValidationError("Upload a PDF, JPEG, or PNG document");
+export async function validateIdentityDocument(bytes: Buffer, mimeType: string) {
+  if (!DOCUMENT_MIME.has(mimeType)) throw new DocumentValidationError("Upload a PDF, JPEG, or PNG document");
   const maxBytes = Number(process.env.IDENTITY_DOCUMENT_MAX_BYTES ?? 10_485_760);
   if (!bytes.length || bytes.length > maxBytes) throw new DocumentValidationError("Document exceeds upload size limit");
-  const validContents =
-    (mimeType === "application/pdf" && bytes.subarray(0, 5).toString("ascii") === "%PDF-")
-    || (mimeType === "image/jpeg" && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
-    || (mimeType === "image/png" && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])));
-  if (!validContents) throw new DocumentValidationError("Document contents do not match its MIME type");
-  return {
-    key: `verification-documents/${randomUUID()}.${extension}`,
-    hash: createHash("sha256").update(bytes).digest("hex")
-  };
+
+  let protectedBody: Buffer;
+  let protectedMimeType: "application/pdf" | "image/jpeg";
+  let extension: "pdf" | "jpg";
+  if (mimeType === "application/pdf") {
+    if (bytes.subarray(0, 5).toString("ascii") !== "%PDF-") throw new DocumentValidationError("Document contents do not match its MIME type");
+    const searchable = bytes.toString("latin1").toLowerCase();
+    if (DANGEROUS_PDF_TOKENS.some(token => searchable.includes(token))) throw new DocumentValidationError("PDF contains active or embedded content");
+    protectedBody = bytes;
+    protectedMimeType = "application/pdf";
+    extension = "pdf";
+  } else {
+    try {
+      const maxPixels = Number(process.env.IDENTITY_DOCUMENT_MAX_PIXELS ?? 25_000_000);
+      const metadata = await sharp(bytes, { failOn: "error", limitInputPixels: maxPixels }).metadata();
+      if (!metadata.format || !["jpeg", "png"].includes(metadata.format) || !metadata.width || !metadata.height || metadata.width * metadata.height > maxPixels) throw new Error("invalid image");
+      protectedBody = await sharp(bytes, { failOn: "error", limitInputPixels: maxPixels }).rotate().resize({ width: 3000, height: 3000, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
+      if (protectedBody.length > maxBytes) throw new DocumentValidationError("Processed document exceeds upload size limit");
+      protectedMimeType = "image/jpeg";
+      extension = "jpg";
+    } catch (error) {
+      if (error instanceof DocumentValidationError) throw error;
+      throw new DocumentValidationError("Invalid or unsafe identity-document image");
+    }
+  }
+  return { key: `verification-documents/${randomUUID()}.${extension}`, hash: createHash("sha256").update(protectedBody).digest("hex"), body: protectedBody, mimeType: protectedMimeType };
 }
 
-export function protectDocumentStorageKey(key: string) {
-  return encryptField(key, encryptionKey());
-}
-
-export function revealDocumentStorageKey(value: Buffer) {
-  return decryptField(value, encryptionKey());
-}
-
-export function protectVerificationNotes(notes: string) {
-  return encryptField(notes, encryptionKey());
-}
+export function protectDocumentStorageKey(key: string) { return encryptField(key, encryptionKey()); }
+export function revealDocumentStorageKey(value: Buffer) { return decryptField(value, encryptionKey()); }
+export function protectVerificationNotes(notes: string) { return encryptField(notes, encryptionKey()); }

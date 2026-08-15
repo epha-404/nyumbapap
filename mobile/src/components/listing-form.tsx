@@ -1,6 +1,7 @@
 import { useState } from "react";
 import MapView, { Marker, MapPressEvent, MarkerDragStartEndEvent } from "react-native-maps";
 import { useQueryClient } from "@tanstack/react-query";
+import * as Crypto from "expo-crypto";
 import { StyleSheet, Switch, Text, View } from "react-native";
 import { apiJson } from "@/lib/api";
 import { Body, Button, Card, ErrorText, Field, H2 } from "./ui";
@@ -18,6 +19,7 @@ export function ListingForm({ onCreated, onCancel }: { onCreated?: (listingId: s
   const [point, setPoint] = useState<Point>(initialPoint);
   const [confirmed, setConfirmed] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({ county: "Nairobi", town: "Nairobi", area: "Pending location lookup", unitType: "1 Bedroom", bedrooms: "1", bathrooms: "1", size: "45", deposit: "0" });
+  const [idempotencyKey] = useState(() => Crypto.randomUUID());
   const set = (key: string, value: string) => setValues(current => ({ ...current, [key]: value }));
 
   async function locate() {
@@ -40,7 +42,7 @@ export function ListingForm({ onCreated, onCancel }: { onCreated?: (listingId: s
     if (!confirmed) return setError("Confirm the pin before submitting.");
     setBusy(true); setError("");
     try {
-      const result = await apiJson<{ id: string }>("dashboard/listings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...values, latitude: String(point.latitude), longitude: String(point.longitude), locationConfirmed: "true" }) });
+      const result = await apiJson<{ id: string }>("dashboard/listings", { method: "POST", headers: { "content-type": "application/json", "idempotency-key": idempotencyKey }, body: JSON.stringify({ ...values, latitude: String(point.latitude), longitude: String(point.longitude), locationConfirmed: "true" }) });
       await client.invalidateQueries({ queryKey: ["dashboard"] });
       onCreated?.(result.id);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not save listing"); }

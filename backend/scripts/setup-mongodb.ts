@@ -22,6 +22,10 @@ async function main() {
       await database.collection(collection).createIndex({ [field]: 1 }, { unique: true, partialFilterExpression: { [field]: { $type: "string" } }, name: `${collection}_${field}_partial_unique` });
     }
     await database.collection("properties").createIndex({ search_point: "2dsphere" }, { sparse: true, name: "properties_search_point_2dsphere" });
+    await database.collection("listings").createIndex(
+      { creation_owner_id: 1, idempotency_key: 1 },
+      { unique: true, partialFilterExpression: { creation_owner_id: { $type: "string" }, idempotency_key: { $type: "string" } }, name: "listings_owner_idempotency_partial_unique" }
+    );
     console.log("MongoDB sparse uniqueness and geospatial indexes are ready");
   } finally { await client.close(); }
 }

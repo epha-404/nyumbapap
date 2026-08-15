@@ -60,6 +60,8 @@ The schema covers users/roles, landlord and agent profiles, properties, rental u
 
 Sensitive fields are modeled separately as encrypted bytes: exact addresses, exact coordinates, owner contacts, identity numbers, verification document keys, and review notes. Search fields contain only a town, an approximate area, intentionally coarse coordinates, and a GeoJSON search point. The public listings route uses a Prisma `select` allow-list that cannot return protected columns.
 
+Identity documents use a separate private S3-compatible bucket with server-side AES-256 encryption requested on every write. JPEG/PNG evidence is fully decoded, resized, metadata-stripped, and re-encoded as JPEG; PDFs with active actions, JavaScript, launch actions, or embedded-file markers are rejected. Reviewer downloads are forced as attachments with `nosniff`, `no-store`, and sandboxed CSP headers. Bucket policy, access logging, retention/deletion, backup, and provider-side audit configuration remain deployment responsibilities.
+
 `backend/src/lib/crypto.ts` provides versioned AES-256-GCM field encryption and normalized blind indexes. In production, keep the 32-byte encryption key in the host secret store, rotate it with a versioned-key procedure, and use separate secrets for blind indexes and OTP HMACs. Never log decrypted values, Daraja credentials, OTPs, identity documents, or exact locations. The Africa's Talking adapter remains isolated for non-authentication SMS integrations; email OTP never calls it.
 
 ## Image processing and storage

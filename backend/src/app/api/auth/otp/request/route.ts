@@ -22,7 +22,7 @@ export async function POST(request: Request) {
             ? Role.CLIENT
             : parsed.data.role === "AGENT"
               ? Role.AGENT
-              : Role.LANDLORD) as Role.CLIENT | Role.LANDLORD | Role.AGENT
+              : Role.LANDLORD) as Extract<Role, "CLIENT" | "LANDLORD" | "AGENT">
         }
       : parsed.data;
     const result = await requestOtp({ ...data, deviceHash: device.hash, ipHash: clientIpHash(request) });

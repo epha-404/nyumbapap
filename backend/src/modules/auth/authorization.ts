@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { sessionFromRequest } from "./request-session";
 import { Action, can, Resource, Role } from "./roles";
 
-export { Action, PERMISSION_MATRIX, Resource, Role, roleFromStoredValue } from "./roles";
+export { Action, PERMISSION_MATRIX, Resource, Role, roleFromStoredValue, parseSessionRole } from "./roles";
 
 export type Principal = { userId: string; role: Role; displayName?: string };
 export type Permission = Readonly<{ resource: Resource; action: Action }>;

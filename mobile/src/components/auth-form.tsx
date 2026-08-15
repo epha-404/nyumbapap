@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { AppRole } from "@nyumbapap/contracts";
 import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { apiJson, saveSession } from "@/lib/api";
@@ -7,8 +8,9 @@ import { colors, spacing, typography } from "../../theme";
 import { useAuth } from "@/providers/app-provider";
 
 type Mode = "LOGIN" | "REGISTER";
+type RegistrationRole = Extract<AppRole, "CLIENT" | "LANDLORD" | "AGENT">;
 export function AuthForm({ mode, initialEmail = "" }: { mode: Mode; initialEmail?: string }) {
-  const auth = useAuth(); const [email, setEmail] = useState(initialEmail); const [name, setName] = useState(""); const [role, setRole] = useState<"CLIENT" | "LANDLORD" | "AGENT">("CLIENT"); const [requested, setRequested] = useState(false); const [code, setCode] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [cooldown, setCooldown] = useState(0);
+  const auth = useAuth(); const [email, setEmail] = useState(initialEmail); const [name, setName] = useState(""); const [role, setRole] = useState<RegistrationRole>("CLIENT"); const [requested, setRequested] = useState(false); const [code, setCode] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [cooldown, setCooldown] = useState(0);
   useEffect(() => { if (!cooldown) return; const timer = setInterval(() => setCooldown(value => Math.max(0, value - 1)), 1000); return () => clearInterval(timer); }, [cooldown > 0]);
   async function send() { const normalized = email.trim().toLowerCase(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return setError("Enter a valid email address"); setBusy(true); setError(""); try { const body = mode === "LOGIN" ? { mode, email: normalized } : { mode, email: normalized, displayName: name, role }; const result = await apiJson<{ message: string; cooldownSeconds: number; registrationRequired?: boolean; loginRequired?: boolean }>("auth/otp/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); if (mode === "LOGIN" && result.registrationRequired) { router.replace({ pathname: "/register", params: { email: normalized } }); return; } if (mode === "REGISTER" && result.loginRequired) { router.replace({ pathname: "/login", params: { email: normalized } }); return; } setEmail(normalized); setNotice(result.message); setCooldown(result.cooldownSeconds || 300); setRequested(true); } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not send code"); } finally { setBusy(false); } }
   async function verify() { if (!/^\d{6}$/.test(code)) return setError("Enter the six-digit code"); setBusy(true); setError(""); try { const result = await apiJson<{ sessionToken: string }>("auth/otp/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, code }) }); if (!result.sessionToken) throw new Error("The backend did not return a mobile session"); await saveSession(result.sessionToken); await auth.refresh(); router.replace("/(tabs)/dashboard"); } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not verify code"); } finally { setBusy(false); } }

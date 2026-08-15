@@ -17,9 +17,10 @@ export async function GET(request: Request, { params }: Context) {
     return new NextResponse(Buffer.from(object.body), {
       headers: {
         "content-type": object.contentType,
-        "content-disposition": "inline",
+        "content-disposition": "attachment; filename=identity-document",
         "cache-control": "private, no-store",
-        "x-content-type-options": "nosniff"
+        "x-content-type-options": "nosniff",
+        "content-security-policy": "default-src 'none'; sandbox"
       }
     });
   } catch {

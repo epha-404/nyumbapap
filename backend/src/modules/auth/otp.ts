@@ -72,7 +72,7 @@ export async function requestOtp(input: {
   mode: OtpMode;
   email: string;
   displayName?: string;
-  role?: Role.CLIENT | Role.LANDLORD | Role.AGENT;
+  role?: Extract<Role, "CLIENT" | "LANDLORD" | "AGENT">;
   userId?: string;
   deviceHash: string;
   ipHash: string;
@@ -179,7 +179,6 @@ export async function verifyOtp(input: { email: string; code: string; deviceHash
       const user = await tx.user.findUnique({ where: { id: challenge.userId } });
       if (!user || user.status !== "ACTIVE") return { ok: false as const };
       const role = roleFromStoredValue(user.role);
-      if (!role) return { ok: false as const };
       await tx.user.update({ where: { id: user.id }, data: { email: challenge.email, emailVerifiedAt: user.emailVerifiedAt ?? now, requiresEmailCapture: false } });
       await tx.notificationOutbox.upsert({ where: { dedupeKey: `security-login:${challenge.id}` }, create: { recipientId: user.id, topic: "SECURITY_LOGIN", dedupeKey: `security-login:${challenge.id}`, payload: { signedInAt: now.toISOString() } }, update: {} });
       return { ok: true as const, user: { userId: user.id, role, displayName: challenge.displayName ?? "NyumbaPap user" } };
@@ -199,7 +198,6 @@ export async function verifyOtp(input: { email: string; code: string; deviceHash
       if (user.role === "LANDLORD") await tx.landlordProfile.create({ data: { userId: user.id, displayName: name } });
       if (user.role === "AGENT") await tx.agentProfile.create({ data: { userId: user.id, agencyName: name } });
       const role = roleFromStoredValue(user.role);
-      if (!role) return { ok: false as const };
       return { ok: true as const, user: { userId: user.id, role, displayName: name } };
     } catch (error) {
       if (String(error).includes("Unique constraint")) return { ok: false as const };

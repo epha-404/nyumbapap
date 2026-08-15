@@ -22,3 +22,7 @@ Native text rendering, system pickers, and `react-native-maps` cannot be byte-id
 ## Interior images
 
 Landlords can select and upload interior photos from the dashboard. Uploads use the existing multipart listing-image API, where the backend strips metadata, creates responsive variants, moderates the media, and stores the processed files in Nisoko Object Storage. The storage credential is never bundled into this app.
+
+## Platform support
+
+Android is the currently validated export target. The iOS bundle compiles, but iOS remains unsupported until the signed-build and physical-device checklist in `IOS_VALIDATION.md` is complete.

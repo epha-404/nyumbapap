@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
-import { Role, roleFromStoredValue } from "./roles";
+import { Role, parseSessionRole } from "./roles";
 
 export const SESSION_COOKIE = "nyumbapap_session";
 export type SessionUser = { userId: string; role: Role; displayName: string };
@@ -29,7 +29,7 @@ export function readSessionToken(token?: string): SessionUser | null {
     const value = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (typeof value.expiresAt !== "number" || value.expiresAt < Date.now() || typeof value.issuedAt !== "number" || typeof value.sessionId !== "string") return null;
     if (typeof value.userId !== "string" || typeof value.displayName !== "string") return null;
-    const role = roleFromStoredValue(value.role);
+    const role = parseSessionRole(value.role);
     if (!role) return null;
     return { userId: value.userId, role, displayName: value.displayName };
   } catch { return null; }

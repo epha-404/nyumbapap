@@ -1,13 +1,8 @@
 import type { UserRole } from "@prisma/client";
+import { APP_ROLE, APPLICATION_TO_DATABASE_ROLE, DATABASE_TO_APPLICATION_ROLE, isApplicationRole, type AppRole, type DatabaseRole } from "@nyumbapap/contracts";
 
-export enum Role {
-  ADMIN = "ADMIN",
-  LANDLORD = "LANDLORD",
-  AGENT = "AGENT",
-  CLIENT = "CLIENT",
-  VERIFIER = "VERIFIER",
-  SUPPORT = "SUPPORT"
-}
+export const Role = APP_ROLE;
+export type Role = AppRole;
 
 export enum Resource {
   SESSION = "SESSION",
@@ -110,14 +105,14 @@ export function can(role: Role, resource: Resource, action: Action) {
   return PERMISSION_MATRIX[role][resource].includes(action);
 }
 
-export function roleFromStoredValue(value: unknown): Role | null {
-  if (value === "TENANT" || value === Role.CLIENT) return Role.CLIENT;
-  if (value === "FINANCE" || value === Role.SUPPORT) return Role.SUPPORT;
-  if (Object.values(Role).includes(value as Role)) return value as Role;
-  return null;
+export function roleFromStoredValue(value: UserRole): Role {
+  return DATABASE_TO_APPLICATION_ROLE[value as DatabaseRole];
 }
 
 export function roleToDatabase(role: Role): UserRole {
-  if (role === Role.CLIENT) return "TENANT";
-  return role;
+  return APPLICATION_TO_DATABASE_ROLE[role] as UserRole;
+}
+
+export function parseSessionRole(value: unknown): Role | null {
+  return isApplicationRole(value) ? value : null;
 }
