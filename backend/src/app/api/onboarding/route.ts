@@ -66,6 +66,7 @@ export async function PUT(request: Request) {
   const principal = authorization.principal;
   const body = await request.json().catch(() => null);
   const { encryptionKey, hashPepper } = secrets();
+  let name: string;
 
   if (principal.role === Role.LANDLORD) {
     const parsed = landlordSchema.safeParse(body);
@@ -73,6 +74,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid onboarding details" }, { status: 400 });
     }
     const { displayName, identityNumber } = parsed.data;
+    name = displayName;
     await db.$transaction([
       db.landlordProfile.upsert({
         where: { userId: principal.userId },
@@ -98,6 +100,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid onboarding details" }, { status: 400 });
     }
     const { agencyName, licenceNumber } = parsed.data;
+    name = agencyName;
     await db.$transaction([
       db.agentProfile.upsert({
         where: { userId: principal.userId },
@@ -119,5 +122,8 @@ export async function PUT(request: Request) {
     ]);
   }
 
-  return NextResponse.json({ ok: true, verificationState: "PENDING" });
+  return NextResponse.json({
+    ok: true,
+    onboarding: { role: principal.role, name, verificationState: "PENDING", hasCredential: true }
+  });
 }

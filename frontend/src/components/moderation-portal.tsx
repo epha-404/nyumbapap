@@ -7,8 +7,9 @@ import styles from "@/app/dashboard/verifier/moderation.module.css";
 
 type IdentityItem = { id: string; kind: string; role: string; subjectName: string; submittedAt: string; documentUrl: string };
 type PhotoItem = { id: string; listingId: string; listingTitle: string; width: number; height: number; submittedAt: string; contentUrl: string };
+type ListingItem = { id: string; title: string; unitType: string; monthlyRentKes: number; town: string; area: string; submittedAt: string };
 type Badge = { label: string; validDays: number; expiringSoonDays: number };
-export type ModerationData = { badgeDefinitions: Record<string, Badge>; identities: IdentityItem[]; photos: PhotoItem[] };
+export type ModerationData = { badgeDefinitions: Record<string, Badge>; identities: IdentityItem[]; photos: PhotoItem[]; listings: ListingItem[] };
 
 export function ModerationPortal({ initialData }: { initialData: ModerationData }) {
   const [identities, setIdentities] = useState(initialData.identities);
@@ -39,6 +40,14 @@ export function ModerationPortal({ initialData }: { initialData: ModerationData 
       </article>)}
     </section>
     {error && <p className={portal.error} role="alert">{error}</p>}
+    <section className={styles.section}>
+      <div className={styles.sectionHeader}><div><span className={portal.eyebrow}>Listing queue</span><h2>New property submissions</h2></div><span className={portal.badge}>{initialData.listings.length} pending</span></div>
+      {!initialData.listings.length && <p className={portal.muted}>No new listings are awaiting interior-photo review.</p>}
+      <div className={styles.queue}>{initialData.listings.map((item) => <article className={styles.reviewCard} key={item.id}>
+        <div><h3>{item.title}</h3><p className={portal.muted}>{item.unitType} · {item.area}, {item.town} · KSh {item.monthlyRentKes.toLocaleString("en-KE")} · submitted {new Date(item.submittedAt).toLocaleString("en-KE")}</p></div>
+        <p className={portal.muted}>The listing remains pending until its submitted interior photos are reviewed.</p>
+      </article>)}</div>
+    </section>
     <section className={styles.section}>
       <div className={styles.sectionHeader}><div><span className={portal.eyebrow}>Identity queue</span><h2>Landlord and agent evidence</h2></div><span className={portal.badge}>{identities.length} pending</span></div>
       {!identities.length && <p className={portal.muted}>No identity documents are awaiting review.</p>}

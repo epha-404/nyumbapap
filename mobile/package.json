@@ -9,6 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "export": "expo export --platform android"
   },
   "dependencies": {
@@ -32,6 +33,9 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.8",
-    "typescript": "^5.9.3"
+    "@types/react-test-renderer": "^19.1.0",
+    "react-test-renderer": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

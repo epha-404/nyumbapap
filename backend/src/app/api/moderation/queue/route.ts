@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   ]);
   if (!authorization.ok) return authorization.response;
   await ensureAuditEventsImmutable();
-  const [identities, photos] = await Promise.all([
+  const [identities, photos, listings] = await Promise.all([
     db.verificationRecord.findMany({
       where: { state: "PENDING", documentStorageKeyEncrypted: { not: null } },
       orderBy: { createdAt: "asc" },
@@ -24,10 +24,20 @@ export async function GET(request: Request) {
       where: { moderationState: "PENDING" },
       orderBy: { createdAt: "asc" },
       select: { id: true, listingId: true, width: true, height: true, createdAt: true, listing: { select: { title: true } } }
+    }),
+    db.listing.findMany({
+      where: { status: "PENDING_REVIEW" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, title: true, createdAt: true, unit: { select: { unitType: true, monthlyRentKes: true, property: { select: { town: true, approximateArea: true } } } } }
     })
   ]);
   return NextResponse.json({
     badgeDefinitions: BADGE_DEFINITIONS,
+    listings: listings.map((item) => ({
+      id: item.id, title: item.title, submittedAt: item.createdAt,
+      unitType: item.unit.unitType, monthlyRentKes: item.unit.monthlyRentKes,
+      town: item.unit.property.town, area: item.unit.property.approximateArea
+    })),
     identities: identities.map((item) => ({
       id: item.id,
       kind: item.kind,
