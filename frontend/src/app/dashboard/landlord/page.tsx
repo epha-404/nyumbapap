@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import type { AppRole } from "@nyumbapap/contracts";
+import type { AppRole } from "@/lib/role-contract";
 import { PortalNav } from "@/components/portal-nav";
 import { ListingManager } from "@/components/listing-manager";
 import { ProfessionalOnboardingForm, type OnboardingData } from "@/components/professional-onboarding-form";

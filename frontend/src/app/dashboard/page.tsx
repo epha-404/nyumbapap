@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import type { AppRole } from "@nyumbapap/contracts";
+import type { AppRole } from "@/lib/role-contract";
 import { backendFetch } from "@/lib/server-api";
 
 type SessionResponse = { session: { role: AppRole } };

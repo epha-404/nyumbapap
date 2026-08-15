@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import type { AppRole } from "@nyumbapap/contracts";
+import type { AppRole } from "@/lib/role-contract";
 import { useRouter } from "next/navigation";
 import styles from "@/app/portal.module.css";
 import { csrfFetch } from "@/lib/api";

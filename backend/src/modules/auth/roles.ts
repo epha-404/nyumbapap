@@ -1,5 +1,5 @@
 import type { UserRole } from "@prisma/client";
-import { APP_ROLE, APPLICATION_TO_DATABASE_ROLE, DATABASE_TO_APPLICATION_ROLE, isApplicationRole, type AppRole, type DatabaseRole } from "@nyumbapap/contracts";
+import { APP_ROLE, APPLICATION_TO_DATABASE_ROLE, DATABASE_TO_APPLICATION_ROLE, isApplicationRole, type AppRole, type DatabaseRole } from "./role-contract";
 
 export const Role = APP_ROLE;
 export type Role = AppRole;
