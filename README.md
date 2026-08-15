@@ -76,7 +76,7 @@ Sensitive fields are modeled separately as encrypted bytes: exact addresses, exa
 8. `saveListingImage` stores primary dimensions, byte size, MIME, key, and variant descriptors in `listing_media`.
 9. It emits 480w and 960w WebP/AVIF variants when the source is large enough.
 
-Objects are private in S3/R2. The storage adapter uploads processed assets only and cleans up partial uploads if database persistence fails. A production delivery route should authorize private assets or expose only approved listing derivatives through a dedicated CDN hostname; identity and verification documents must never share a public delivery path.
+Processed listing and interior images are uploaded by the backend to the Nisoko Object Storage container configured by `NISOKO_STORAGE_CONTAINER` (currently `nyumba-pap-assets`). The live API key remains server-only. Database records retain Nisoko's opaque file identity, while clients continue to load approved media through `/api/listing-media/{id}`. Partial uploads are deleted if database persistence fails. Identity and verification documents remain isolated in private S3-compatible storage and never share the public listing-media path.
 
 Virus scanning is still credential/infrastructure-dependent and must be added before accepting arbitrary production uploads. The current pipeline protects image decoding and metadata privacy but is not a malware scanner.
 
@@ -108,7 +108,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 
 - Deploy the Next.js monolith to a small Node-compatible host (for example Render, Railway, Fly.io, or a small VPS) in the nearest practical region. Avoid serverless platforms that cannot reliably bundle/run Sharp or accept Daraja callbacks.
 - Start with a managed MongoDB replica set with automated daily backups and point-in-time recovery. MongoDB Atlas is the simplest production option; select a region appropriate for Kenyan users and verify transaction support.
-- Use Cloudflare R2 for private processed assets; serve approved derivatives through Cloudflare with controlled URLs. Set lifecycle rules for abandoned/rejected objects.
+- Use Nisoko Object Storage for processed listing/interior assets and configure lifecycle/retention policy for abandoned or rejected objects. Keep identity documents in separate private S3-compatible storage.
 - Use Sentry free tier with low trace sampling and PII collection disabled.
 - Use a single protected scheduled trigger for vacancy expiry, reconciliation, and notification outbox work. Keep jobs idempotent.
 - Put Cloudflare in front for TLS, CDN, basic WAF, bot protection, and coarse rate limiting. Add application/database rate limits before enabling OTP and writes.
@@ -116,7 +116,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 ## Deployment path
 
 1. Provision a MongoDB replica set and run `npm run db:setup --workspace backend`.
-2. Provision private R2/S3 buckets and a least-privilege application credential.
+2. Provision the Nisoko listing-media container plus separate private document storage, using least-privilege credentials for each.
 3. Configure a public HTTPS application origin and exact Daraja callback URL.
 4. Set secrets through the host secret manager, never a committed file.
 5. Run `npm ci`, `npx prisma migrate deploy`, tests, and `npm run build` in CI.
@@ -130,7 +130,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 - [ ] Independent session, encryption, and blind-index secrets
 - [ ] Production MongoDB replica-set URL and backup policy
 - [ ] Daraja consumer key/secret, shortcode, passkey, callback URL, and production approval
-- [ ] R2/S3 endpoint, bucket, region, least-privilege access key, lifecycle and CORS policies
+- [ ] Nisoko listing-media container/API key and separate private-document storage credentials, lifecycle and CORS policies
 - [ ] Africa's Talking username, API key, approved sender ID, message templates, and delivery callback plan
 - [ ] Restricted maps browser token and separate server token if required
 - [ ] Sentry DSN, project/release credentials, alert recipients, and PII review

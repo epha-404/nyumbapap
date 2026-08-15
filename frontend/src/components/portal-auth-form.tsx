@@ -8,7 +8,7 @@ import { csrfFetch } from "@/lib/api";
 type RequestBody = { mode: "LOGIN" | "REGISTER"; email: string; displayName?: FormDataEntryValue; role?: FormDataEntryValue };
 type Challenge = { email: string; request: RequestBody };
 
-export function PortalAuthForm({ mode, returnTo = "/dashboard" }: { mode: "login" | "register"; returnTo?: string }) {
+export function PortalAuthForm({ mode, returnTo = "/dashboard", initialEmail = "" }: { mode: "login" | "register"; returnTo?: string; initialEmail?: string }) {
   const router = useRouter();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [error, setError] = useState("");
@@ -37,6 +37,16 @@ export function PortalAuthForm({ mode, returnTo = "/dashboard" }: { mode: "login
       const retryAfter = Number(response.headers.get("retry-after") ?? 0);
       if (retryAfter > 0) setCooldown(retryAfter);
       setError(result.error ?? "Could not send a code");
+      return false;
+    }
+    if (mode === "login" && result.registrationRequired === true) {
+      const query = new URLSearchParams({ email: body.email, returnTo });
+      router.replace(`/register?${query.toString()}`);
+      return false;
+    }
+    if (mode === "register" && result.loginRequired === true) {
+      const query = new URLSearchParams({ email: body.email, returnTo });
+      router.replace(`/login?${query.toString()}`);
       return false;
     }
     setCooldown(Number(result.cooldownSeconds) || 300);
@@ -78,7 +88,7 @@ export function PortalAuthForm({ mode, returnTo = "/dashboard" }: { mode: "login
     const seconds = String(cooldown % 60).padStart(2, "0");
     return <form key="otp-verification" className={styles.form} onSubmit={verifyCode}>
       <p className={styles.muted}>Enter the six-digit code sent to {challenge.email}. It expires in five minutes.</p>
-      <p className={styles.muted}>{mode === "login" ? "If this email is new, verifying it creates a home-seeker account automatically." : "If this email already belongs to an account, use the sign-in page instead."}</p>
+      <p className={styles.muted}>{mode === "login" ? "This code signs you in to your existing account." : "If this email already belongs to an account, use the sign-in page instead."}</p>
       {notice && <p className={styles.muted} role="status">{notice}</p>}
       <label>Verification code<input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required autoFocus /></label>
       {error && <p className={styles.error} role="alert">{error}</p>}
@@ -95,7 +105,7 @@ export function PortalAuthForm({ mode, returnTo = "/dashboard" }: { mode: "login
       <label>Full name<input name="displayName" autoComplete="name" required minLength={2} maxLength={80} placeholder="e.g. Amina Kamau" /></label>
       <label>Account type<select name="role" defaultValue="CLIENT"><option value="CLIENT">Client / home seeker</option><option value="LANDLORD">Landlord</option><option value="AGENT">Property agent</option></select></label>
     </>}
-    <label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com" /></label>
+    <label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com" defaultValue={initialEmail} /></label>
     {error && <p className={styles.error} role="alert">{error}</p>}
     <button className={styles.primary} disabled={busy}>{busy ? "Sending code..." : "Send verification code"}</button>
   </form>;

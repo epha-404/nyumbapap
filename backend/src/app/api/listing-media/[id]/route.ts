@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { S3PrivateStorage } from "@/modules/storage/s3-storage";
+import { listingImageStorage } from "@/modules/storage/listing-image-storage";
 
 type Context = { params: Promise<{ id: string }> };
 type Variant = { name: string; key: string; mimeType: string };
@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: Context) {
   if (variantName && !variant) return NextResponse.json({ error: "Image variant not found" }, { status: 404 });
 
   try {
-    const object = await S3PrivateStorage.fromEnvironment().get(variant?.key ?? media.storageKey);
+    const object = await listingImageStorage().get(variant?.key ?? media.storageKey);
     return new NextResponse(Buffer.from(object.body), {
       headers: {
         "Content-Type": variant?.mimeType ?? object.contentType ?? media.mimeType,

@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "NyumbaPap",
+    "slug": "nyumbapap",
+    "scheme": "nyumbapap",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow NyumbaPap to select interior listing photos."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "com.odafood.nyumbapap",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.odafood.nyumbapap",
+      "supportsTablet": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0f9f2de9-fb1d-49f8-8579-c5c4a35e8e38"
+      }
+    }
+  }
+}

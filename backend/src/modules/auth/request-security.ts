@@ -3,6 +3,12 @@ import { db } from "@/lib/db";
 
 export const CSRF_COOKIE = "nyumbapap_csrf";
 export const DEVICE_COOKIE = "nyumbapap_device";
+export const MOBILE_CLIENT_HEADER = "x-nyumbapap-client";
+export const MOBILE_DEVICE_HEADER = "x-nyumbapap-device";
+
+export function isMobileRequest(request: Request) {
+  return request.headers.get(MOBILE_CLIENT_HEADER) === "expo";
+}
 
 function secret() {
   const value = process.env.SESSION_SECRET;
@@ -53,11 +59,16 @@ function validSignedToken(token: string | undefined, label: string) {
 export function verifyCsrfRequest(request: Request) {
   if (!isSameOrigin(request)) return false;
   const header = request.headers.get("x-csrf-token");
+  if (isMobileRequest(request) && !request.headers.get("origin")) return Boolean(header && validSignedToken(header, "csrf"));
   const cookie = cookieValue(request, CSRF_COOKIE);
   return Boolean(header && cookie && safeEqual(header, cookie) && validSignedToken(cookie, "csrf"));
 }
 
 export function deviceIdentity(request: Request) {
+  if (isMobileRequest(request)) {
+    const mobileDevice = request.headers.get(MOBILE_DEVICE_HEADER)?.trim();
+    if (mobileDevice && mobileDevice.length >= 32 && mobileDevice.length <= 200) return { token: mobileDevice, hash: mac("device-hash", mobileDevice), isNew: false };
+  }
   const current = cookieValue(request, DEVICE_COOKIE);
   const token = validSignedToken(current, "device")
     ? current!

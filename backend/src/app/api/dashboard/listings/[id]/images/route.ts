@@ -11,7 +11,7 @@ import {
 import { clientIpHash, verifyCsrfRequest } from "@/modules/auth/request-security";
 import { ImageValidationError } from "@/modules/media/image-pipeline";
 import { saveListingImage } from "@/modules/media/save-listing-image";
-import { S3PrivateStorage } from "@/modules/storage/s3-storage";
+import { listingImageStorage } from "@/modules/storage/listing-image-storage";
 
 type Context = { params: Promise<{ id: string }> };
 const MAX_LISTING_IMAGES = 12;
@@ -57,7 +57,7 @@ export async function POST(request: Request, { params }: Context) {
 
   const saved = [];
   try {
-    const storage = S3PrivateStorage.fromEnvironment();
+    const storage = listingImageStorage();
     for (const [index, image] of images.entries()) {
       const media = await saveListingImage(
         { db, storage },

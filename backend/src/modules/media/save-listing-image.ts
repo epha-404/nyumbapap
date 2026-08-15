@@ -27,37 +27,39 @@ export async function saveListingImage(
   const processed = await processListingImage(input.bytes, input.mimeType);
   const uploaded: string[] = [];
   try {
-    await deps.storage.put({
+    const primaryUpload = await deps.storage.put({
       key: processed.key,
       body: processed.body,
       contentType: processed.mimeType,
       cacheControl: "public, max-age=31536000, immutable"
     });
-    uploaded.push(processed.key);
+    uploaded.push(primaryUpload.key);
+    const storedVariants: Array<(typeof processed.variants)[number] & { storedKey: string }> = [];
     for (const variant of processed.variants) {
-      await deps.storage.put({
+      const stored = await deps.storage.put({
         key: variant.key,
         body: variant.body,
         contentType: variant.mimeType,
         cacheControl: "public, max-age=31536000, immutable"
       });
-      uploaded.push(variant.key);
+      uploaded.push(stored.key);
+      storedVariants.push({ ...variant, storedKey: stored.key });
     }
     await ensureAuditEventsImmutable();
     return await deps.db.$transaction(async (tx) => {
       const media = await tx.listingMedia.create({
         data: {
           listingId: input.listingId,
-          storageKey: processed.key,
+          storageKey: primaryUpload.key,
           mimeType: processed.mimeType,
           width: processed.width,
           height: processed.height,
           sizeBytes: processed.sizeBytes,
           sortOrder: input.sortOrder,
           moderationState: "PENDING",
-          variants: processed.variants.map((variant) => ({
+          variants: storedVariants.map((variant) => ({
             name: variant.name,
-            key: variant.key,
+            key: variant.storedKey,
             mimeType: variant.mimeType,
             width: variant.width,
             height: variant.height,

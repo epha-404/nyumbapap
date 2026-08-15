@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AuthFlowError, verifyOtp } from "@/modules/auth/otp";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/modules/auth/session";
-import { authCookieOptions, clientIpHash, deviceIdentity, verifyCsrfRequest } from "@/modules/auth/request-security";
+import { authCookieOptions, clientIpHash, deviceIdentity, isMobileRequest, verifyCsrfRequest } from "@/modules/auth/request-security";
 
 const schema = z.object({ email: z.string().trim().email().max(254), code: z.string().regex(/^\d{6}$/) });
 
@@ -13,8 +13,9 @@ export async function POST(request: Request) {
   const device = deviceIdentity(request);
   try {
     const user = await verifyOtp({ ...parsed.data, deviceHash: device.hash, ipHash: clientIpHash(request) });
-    const response = NextResponse.json({ ok: true, role: user.role });
-    response.cookies.set(SESSION_COOKIE, createSessionToken(user), authCookieOptions(true, SESSION_MAX_AGE_SECONDS));
+    const sessionToken = createSessionToken(user);
+    const response = NextResponse.json({ ok: true, role: user.role, ...(isMobileRequest(request) ? { sessionToken } : {}) });
+    if (!isMobileRequest(request)) response.cookies.set(SESSION_COOKIE, sessionToken, authCookieOptions(true, SESSION_MAX_AGE_SECONDS));
     return response;
   } catch (error) {
     const status = error instanceof AuthFlowError ? error.status : 500;

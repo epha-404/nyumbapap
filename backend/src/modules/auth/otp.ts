@@ -81,7 +81,6 @@ export async function requestOtp(input: {
   const email = normalizeEmail(input.email);
   await enforce("otp-request-ip", input.ipHash, 20, 10 * 60);
   await enforce("otp-request-device", input.deviceHash, 10, 10 * 60);
-  const emailLimit = await enforce("otp-request-email", emailRateKey(email), OTP_REQUEST_LIMIT, OTP_REQUEST_WINDOW_SECONDS);
 
   let userId: string | null = null;
   let displayName = input.displayName?.trim() || null;
@@ -99,9 +98,12 @@ export async function requestOtp(input: {
     role = user.role;
   } else if (input.mode === "LOGIN") {
     if (!existing) {
-      purpose = "SIGNUP";
-      displayName = "NyumbaPap user";
-      role = "TENANT";
+      return {
+        message: "Complete registration before requesting a verification code.",
+        registrationRequired: true,
+        expiresInSeconds: 0,
+        cooldownSeconds: 0
+      };
     } else if (existing.status !== "ACTIVE") {
       return { message: OTP_GENERIC_RESPONSE, expiresInSeconds: OTP_TTL_SECONDS, cooldownSeconds: 300 };
     } else {
@@ -113,9 +115,16 @@ export async function requestOtp(input: {
     }
   } else {
     if (!displayName || displayName.length < 2 || displayName.length > 80 || !role) throw new AuthFlowError("Enter your name and account type.");
+    if (existing?.status === "ACTIVE") return {
+      message: "This email already has an account. Sign in to continue.",
+      loginRequired: true,
+      expiresInSeconds: 0,
+      cooldownSeconds: 0
+    };
     if (existing) return { message: OTP_GENERIC_RESPONSE, expiresInSeconds: OTP_TTL_SECONDS, cooldownSeconds: 300 };
   }
 
+  const emailLimit = await enforce("otp-request-email", emailRateKey(email), OTP_REQUEST_LIMIT, OTP_REQUEST_WINDOW_SECONDS);
   await db.otpCode.updateMany({ where: { email, purpose, consumedAt: null }, data: { consumedAt: new Date() } });
   const id = randomUUID();
   const code = generateOtpCode();

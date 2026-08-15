@@ -27,6 +27,9 @@ const serverEnvSchema = z.object({
   ,NES_SUPPORT_FROM: z.string().email().default("support@odafood.com")
   ,NES_BILLING_FROM: z.string().email().default("billing@odafood.com")
   ,NES_WEBHOOK_SECRET: z.string().min(24).optional()
+  ,NISOKO_STORAGE_API_URL: z.string().url().default("https://storage.nisoko.co.ke")
+  ,NISOKO_STORAGE_API_KEY: z.string().startsWith("nsk_live_").optional()
+  ,NISOKO_STORAGE_CONTAINER: z.string().min(3).default("nyumba-pap-assets")
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

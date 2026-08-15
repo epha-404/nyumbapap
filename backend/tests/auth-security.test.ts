@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createCsrfToken, CSRF_COOKIE, verifyCsrfRequest } from "@/modules/auth/request-security";
+import { createCsrfToken, CSRF_COOKIE, deviceIdentity, verifyCsrfRequest } from "@/modules/auth/request-security";
 import { failedAttempt, generateOtpCode, hashOtpCode, otpCodeMatches, otpIsUnavailable } from "@/modules/auth/otp";
 import { createSessionToken, readSessionToken } from "@/modules/auth/session";
+import { sessionFromRequest } from "@/modules/auth/request-session";
 import { Role } from "@/modules/auth/roles";
 
 describe("authentication security", () => {
@@ -67,6 +68,22 @@ describe("authentication security", () => {
     } });
     expect(verifyCsrfRequest(productionRequest)).toBe(true);
     delete process.env.FRONTEND_URLS;
+  });
+
+  it("accepts signed CSRF and bearer sessions from the native Expo client without weakening browser checks", () => {
+    const csrf = createCsrfToken();
+    const user = { userId: "mobile-user", role: Role.CLIENT, displayName: "Mobile user" };
+    const request = new Request("https://api.example.com/api/auth/otp/verify", { method: "POST", headers: {
+      "x-nyumbapap-client": "expo",
+      "x-nyumbapap-device": "stable-native-device-identifier-000001",
+      "x-csrf-token": csrf,
+      authorization: `Bearer ${createSessionToken(user)}`
+    } });
+    expect(verifyCsrfRequest(request)).toBe(true);
+    expect(deviceIdentity(request).isNew).toBe(false);
+    expect(sessionFromRequest(request)).toEqual(user);
+    const browserSpoof = new Request("https://api.example.com/api/auth/otp/verify", { method: "POST", headers: { origin: "https://evil.example", "x-nyumbapap-client": "expo", "x-csrf-token": csrf } });
+    expect(verifyCsrfRequest(browserSpoof)).toBe(false);
   });
 
   it("signs and validates session payloads", () => {

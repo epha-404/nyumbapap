@@ -14,8 +14,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({ db: mocks.db }));
 vi.mock("@/modules/media/save-listing-image", () => ({ saveListingImage: mocks.saveListingImage }));
-vi.mock("@/modules/storage/s3-storage", () => ({
-  S3PrivateStorage: { fromEnvironment: () => mocks.storage }
+vi.mock("@/modules/storage/listing-image-storage", () => ({
+  listingImageStorage: () => mocks.storage
 }));
 
 import { POST as uploadImages } from "@/app/api/dashboard/listings/[id]/images/route";

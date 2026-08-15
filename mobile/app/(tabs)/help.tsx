@@ -1,0 +1,6 @@
+import { Link } from "expo-router";
+import { StyleSheet, Text } from "react-native";
+import { InformationScreen, Section } from "@/components/information-screen";
+import { colors, typography } from "../../theme";
+export default function Help(){return <InformationScreen eyebrow="Help and safety" title="Get help and stay safe"><Section title="Before you pay or visit">Never pay a deposit before viewing the home and confirming who controls it. Check rent, deposit, utilities, and agent fees in writing. Never share OTPs or M-Pesa PINs.</Section><Section title="Payments">An STK prompt should show the expected amount. Cancel an unexpected prompt. Contact access is released only after NyumbaPap receives a verified callback.</Section><Section title="Report a listing">Signed-in home seekers can report fraud, safety concerns, misleading details, duplicates, or unavailable properties.</Section><Section title="Emergencies">NyumbaPap is not an emergency service. Contact the appropriate local emergency or law-enforcement service if someone is in immediate danger.</Section><Text style={s.links}><Link href="/privacy">Privacy</Link> · <Link href="/terms">Terms</Link></Text></InformationScreen>};
+const s=StyleSheet.create({links:{color:colors.green,fontFamily:typography.bodyBold,textDecorationLine:"underline"}});

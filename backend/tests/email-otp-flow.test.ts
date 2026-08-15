@@ -57,14 +57,23 @@ describe("email OTP signup and verification", () => {
     expect(mocks.state.codes[0].consumedAt).toBeInstanceOf(Date);
   });
 
-  it("sends to an unregistered login email and creates a home-seeker account after verification", async () => {
-    let deliveredCode = "";
-    const provider = { sendOtp: vi.fn(async ({ code }: { code: string }) => { deliveredCode = code; return { providerMessageId: "nes-new-login" }; }) };
-    await requestOtp({ mode: "LOGIN", email: "first.visit@example.com", deviceHash: "device", ipHash: "ip" }, provider);
-    expect(provider.sendOtp).toHaveBeenCalledWith(expect.objectContaining({ to: "first.visit@example.com" }));
-    const principal = await verifyOtp({ email: "first.visit@example.com", code: deliveredCode, deviceHash: "device", ipHash: "ip" });
-    expect(principal).toMatchObject({ role: "CLIENT", displayName: "NyumbaPap user" });
-    expect(mocks.state.users.get(principal.userId)).toMatchObject({ email: "first.visit@example.com", role: "TENANT", status: "ACTIVE" });
+  it("routes an unregistered login email to registration without creating a tenant or sending OTP", async () => {
+    const provider = { sendOtp: vi.fn(async () => ({ providerMessageId: "must-not-send" })) };
+    const result = await requestOtp({ mode: "LOGIN", email: "first.visit@example.com", deviceHash: "device", ipHash: "ip" }, provider);
+    expect(result).toMatchObject({ registrationRequired: true, cooldownSeconds: 0 });
+    expect(provider.sendOtp).not.toHaveBeenCalled();
+    expect(mocks.state.users.size).toBe(0);
+    expect(mocks.state.codes).toHaveLength(0);
+  });
+
+  it("routes an existing active registration email back to sign-in without sending a signup OTP", async () => {
+    mocks.state.users.set("existing-1", { id: "existing-1", email: "known@example.com", status: "ACTIVE", role: "TENANT" });
+    mocks.state.accounts.set("existing-1", { id: "existing-1", displayName: "Known user" });
+    const provider = { sendOtp: vi.fn(async () => ({ providerMessageId: "must-not-send" })) };
+    const result = await requestOtp({ mode: "REGISTER", email: "known@example.com", displayName: "Duplicate", role: "CLIENT" as any, deviceHash: "device", ipHash: "ip" }, provider);
+    expect(result).toMatchObject({ loginRequired: true, cooldownSeconds: 0 });
+    expect(provider.sendOtp).not.toHaveBeenCalled();
+    expect(mocks.state.codes).toHaveLength(0);
   });
 
   it("returns the same generic error for wrong and expired codes", async () => {
