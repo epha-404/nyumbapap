@@ -36,6 +36,7 @@ const serverEnvSchema = z.object({
   ,NISOKO_STORAGE_CONTAINER: z.string().min(3).default("nyumba-pap-assets")
   ,NISOKO_PRIVATE_DOCUMENTS_CONTAINER: z.string().min(3).default("nyumba-pap-private-docs")
   ,UNVERIFIED_LANDLORD_RANKING_FACTOR: z.coerce.number().positive().max(1).default(0.7)
+  ,IDENTITY_DOCUMENT_IMAGE_QUALITY: z.coerce.number().int().min(60).max(95).default(82)
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

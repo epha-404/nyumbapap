@@ -32,7 +32,12 @@ export async function validateIdentityDocument(bytes: Buffer, mimeType: string) 
       const maxPixels = Number(process.env.IDENTITY_DOCUMENT_MAX_PIXELS ?? 25_000_000);
       const metadata = await sharp(bytes, { failOn: "error", limitInputPixels: maxPixels }).metadata();
       if (!metadata.format || !["jpeg", "png"].includes(metadata.format) || !metadata.width || !metadata.height || metadata.width * metadata.height > maxPixels) throw new Error("invalid image");
-      protectedBody = await sharp(bytes, { failOn: "error", limitInputPixels: maxPixels }).rotate().resize({ width: 3000, height: 3000, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
+      const quality = Math.min(95, Math.max(60, Number(process.env.IDENTITY_DOCUMENT_IMAGE_QUALITY ?? 82)));
+      protectedBody = await sharp(bytes, { failOn: "error", limitInputPixels: maxPixels })
+        .rotate()
+        .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality, progressive: true, mozjpeg: true })
+        .toBuffer();
       if (protectedBody.length > maxBytes) throw new DocumentValidationError("Processed document exceeds upload size limit");
       protectedMimeType = "image/jpeg";
       extension = "jpg";
