@@ -97,7 +97,8 @@ describe("listing image routes", () => {
           town: "Nairobi",
           approximateArea: "Kasarani",
           approximateLatitude: null,
-          approximateLongitude: null
+          approximateLongitude: null,
+          owner: { landlordProfile: { verificationState: "UNVERIFIED" } }
         }
       },
       media: [
@@ -113,6 +114,8 @@ describe("listing image routes", () => {
     expect(response.status).toBe(200);
     expect(body.listing.images).toHaveLength(2);
     expect(body.listing.images[0].url).toBe("/api/listing-media/media-1");
+    expect(body.listing.landlordBadge).toEqual({ state: "unverified", label: "Unverified landlord" });
+    expect(body.listing.unit.property).not.toHaveProperty("owner");
     expect(body.listing.unit.property).not.toHaveProperty("exactAddressEncrypted");
     expect(mocks.db.listingDailyView.upsert).toHaveBeenCalledOnce();
   });

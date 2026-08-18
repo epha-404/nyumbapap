@@ -79,7 +79,7 @@ The schema covers users/roles, landlord and agent profiles, properties, rental u
 
 Sensitive fields are modeled separately as encrypted bytes: exact addresses, exact coordinates, owner contacts, identity numbers, verification document keys, and review notes. Search fields contain only a town, an approximate area, intentionally coarse coordinates, and a GeoJSON search point. The public listings route uses a Prisma `select` allow-list that cannot return protected columns.
 
-Identity documents use a separate private S3-compatible bucket with server-side AES-256 encryption requested on every write. JPEG/PNG evidence is fully decoded, resized, metadata-stripped, and re-encoded as JPEG; PDFs with active actions, JavaScript, launch actions, or embedded-file markers are rejected. Reviewer downloads are forced as attachments with `nosniff`, `no-store`, and sandboxed CSP headers. Bucket policy, access logging, retention/deletion, backup, and provider-side audit configuration remain deployment responsibilities.
+Identity documents use the separate private Nisoko container configured by `NISOKO_PRIVATE_DOCUMENTS_CONTAINER` (currently `nyumba-pap-private-docs`). The backend is the only reader and never returns a direct object URL. JPEG/PNG evidence is fully decoded, resized, metadata-stripped, and re-encoded as JPEG; PDFs with active actions, JavaScript, launch actions, or embedded-file markers are rejected. Reviewer downloads are forced as attachments with `nosniff`, `no-store`, and sandboxed CSP headers. Container policy, access logging, retention/deletion, backup, and provider-side audit configuration remain deployment responsibilities.
 
 `backend/src/lib/crypto.ts` provides versioned AES-256-GCM field encryption and normalized blind indexes. In production, keep the 32-byte encryption key in the host secret store, rotate it with a versioned-key procedure, and use separate secrets for blind indexes and OTP HMACs. Never log decrypted values, Daraja credentials, OTPs, identity documents, or exact locations. The Africa's Talking adapter remains isolated for non-authentication SMS integrations; email OTP never calls it.
 
@@ -97,7 +97,7 @@ Identity documents use a separate private S3-compatible bucket with server-side 
 8. `saveListingImage` stores primary dimensions, byte size, MIME, key, and variant descriptors in `listing_media`.
 9. It emits 480w and 960w WebP/AVIF variants when the source is large enough.
 
-Processed listing and interior images are uploaded by the backend to the Nisoko Object Storage container configured by `NISOKO_STORAGE_CONTAINER` (currently `nyumba-pap-assets`). The live API key remains server-only. Database records retain Nisoko's opaque file identity, while clients continue to load approved media through `/api/listing-media/{id}`. Partial uploads are deleted if database persistence fails. Identity and verification documents remain isolated in private S3-compatible storage and never share the public listing-media path.
+Processed listing and interior images are uploaded by the backend to the public Nisoko Object Storage container configured by `NISOKO_STORAGE_CONTAINER` (currently `nyumba-pap-assets`). The live API key remains server-only. Database records retain Nisoko's opaque file identity, while clients continue to load approved media through `/api/listing-media/{id}`. Partial uploads are deleted if database persistence fails. Identity and verification documents use the separate private Nisoko container and remain available only through the authenticated moderation endpoint.
 
 Virus scanning is still credential/infrastructure-dependent and must be added before accepting arbitrary production uploads. The current pipeline protects image decoding and metadata privacy but is not a malware scanner.
 
@@ -129,7 +129,7 @@ Tests cover environment validation, protected-field encryption, role/object auth
 
 - Deploy the Next.js monolith to a small Node-compatible host (for example Render, Railway, Fly.io, or a small VPS) in the nearest practical region. Avoid serverless platforms that cannot reliably bundle/run Sharp or accept Daraja callbacks.
 - Start with a managed MongoDB replica set with automated daily backups and point-in-time recovery. MongoDB Atlas is the simplest production option; select a region appropriate for Kenyan users and verify transaction support.
-- Use Nisoko Object Storage for processed listing/interior assets and configure lifecycle/retention policy for abandoned or rejected objects. Keep identity documents in separate private S3-compatible storage.
+- Use separate public and private Nisoko containers: public listing/interior assets in `NISOKO_STORAGE_CONTAINER`, private identity documents in `NISOKO_PRIVATE_DOCUMENTS_CONTAINER`. Configure lifecycle/retention policy for abandoned or rejected objects.
 - Use Sentry free tier with low trace sampling and PII collection disabled.
 - Use a single protected scheduled trigger for vacancy expiry, reconciliation, and notification outbox work. Keep jobs idempotent.
 - Put Cloudflare in front for TLS, CDN, basic WAF, bot protection, and coarse rate limiting. Add application/database rate limits before enabling OTP and writes.

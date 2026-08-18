@@ -43,7 +43,7 @@ export default async function LandlordDashboard() {
     <div style={{ marginTop: 30 }}><ProfessionalOnboardingForm onboarding={onboarding} /></div>
     <ListingManager
       initialListings={data.listings}
-      canCreate={onboarding.verificationState === "PENDING" || onboarding.verificationState === "APPROVED"}
+      canCreate={onboarding.verificationState === "UNVERIFIED" || onboarding.verificationState === "PENDING" || onboarding.verificationState === "APPROVED"}
     />
   </main></div>;
 }

@@ -11,6 +11,7 @@ type ListingDetail = {
   title: string;
   description: string;
   badge: { label: string; state: string; expiresAt: string | null };
+  landlordBadge?: { label: string; state: "verified" | "unverified" } | null;
   unit: {
     unitType: string;
     bedrooms: number;
@@ -47,6 +48,7 @@ export default async function PublicListingPage({ params }: { params: Promise<{ 
         <div>
           <span className={portal.eyebrow}>Public listing</span>
           {(listing.badge.state === "verified" || listing.badge.state === "expiring") && <span className={portal.badge}>{listing.badge.label}{listing.badge.state === "expiring" ? " - expiring soon" : ""}</span>}
+          {listing.landlordBadge && <span className={`landlord-verification ${listing.landlordBadge.state}`}>{listing.landlordBadge.label}</span>}
           <h1 className={portal.title}>{listing.title}</h1>
           <p className={portal.muted}>{listing.unit.property.approximateArea}, {listing.unit.property.town}, {listing.unit.property.county}</p>
         </div>

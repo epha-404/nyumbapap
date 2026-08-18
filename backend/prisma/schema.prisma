@@ -33,6 +33,7 @@ enum OtpPurpose {
 
 enum VerificationState {
   NOT_SUBMITTED
+  UNVERIFIED
   PENDING
   APPROVED
   REJECTED

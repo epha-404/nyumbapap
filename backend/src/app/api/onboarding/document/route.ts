@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { Action, authorizeRequest, Resource, Role } from "@/modules/auth/authorization";
 import { clientIpHash, verifyCsrfRequest } from "@/modules/auth/request-security";
-import { S3PrivateStorage } from "@/modules/storage/s3-storage";
+import { NisokoObjectStorage } from "@/modules/storage/nisoko-storage";
 import type { PrivateObjectStorage } from "@/modules/storage/provider";
 import { ensureAuditEventsImmutable } from "@/modules/verification/audit";
 import { DocumentValidationError, protectDocumentStorageKey, validateIdentityDocument } from "@/modules/verification/documents";
@@ -49,9 +49,10 @@ export async function POST(request: Request) {
   }
 
   let storage: PrivateObjectStorage;
+  let stored: Awaited<ReturnType<PrivateObjectStorage["put"]>>;
   try {
-    storage = S3PrivateStorage.fromEnvironment();
-    await storage.put({ key: prepared.key, body: prepared.body, contentType: prepared.mimeType, cacheControl: "private, no-store" });
+    storage = NisokoObjectStorage.privateDocumentsFromEnvironment();
+    stored = await storage.put({ key: prepared.key, body: prepared.body, contentType: prepared.mimeType, cacheControl: "private, no-store" });
   } catch (error) {
     console.error("Identity document storage failed", { name: error instanceof Error ? error.name : "UnknownError", message: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: "Private document storage is temporarily unavailable. Please retry." }, { status: 503, headers: { "Retry-After": "10" } });
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
           subjectUserId: principal.userId,
           kind,
           state: "PENDING",
-          documentStorageKeyEncrypted: protectDocumentStorageKey(prepared.key),
+          documentStorageKeyEncrypted: protectDocumentStorageKey(stored.key),
           documentHash: prepared.hash
         }
       });
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ id: record.id, state: record.state, message: "Document submitted for verification" }, { status: 201 });
   } catch (error) {
-    await storage.delete(prepared.key).catch(() => undefined);
+    await storage.delete(stored.key).catch(() => undefined);
     console.error("Identity document submission failed", { name: error instanceof Error ? error.name : "UnknownError" });
     return NextResponse.json({ error: "Could not submit document" }, { status: 500 });
   }

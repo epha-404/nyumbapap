@@ -5,6 +5,7 @@ import { sessionFromRequest } from "@/modules/auth/request-session";
 import { calculateUnlockFee, UNLOCK_FEE_CONFIG_ID } from "@/modules/payments/unlock-fee";
 import { createHash } from "node:crypto";
 import { clientIpHash } from "@/modules/auth/request-security";
+import { landlordVerificationBadge } from "@/modules/listings/ranking";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,8 @@ export async function GET(request: Request, { params }: Context) {
               town: true,
               approximateArea: true,
               approximateLatitude: true,
-              approximateLongitude: true
+              approximateLongitude: true,
+              owner: { select: { landlordProfile: { select: { verificationState: true } } } }
             }
           }
         }
@@ -59,9 +61,12 @@ export async function GET(request: Request, { params }: Context) {
     create: { listingId: id, viewerKeyHash, viewDate },
     update: {}
   });
+  const { owner, ...publicProperty } = listing.unit.property;
   return NextResponse.json({
     listing: {
       ...listing,
+      unit: { ...listing.unit, property: publicProperty },
+      landlordBadge: landlordVerificationBadge(owner?.landlordProfile?.verificationState ?? null),
       unlockFeeKes: calculateUnlockFee(listing.unit.monthlyRentKes, { ...feeConfig, rate: Number(feeConfig.rate) }),
       hasPaidUnlock: existingUnlock?.payment.state === "PAID",
       signedIn: Boolean(session),

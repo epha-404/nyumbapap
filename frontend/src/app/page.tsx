@@ -8,6 +8,7 @@ type ApiListing = {
   title: string;
   verificationState: string;
   badge?: { label: string; state: string; expiresAt: string | null };
+  landlordBadge?: { label: string; state: "verified" | "unverified" } | null;
   unit: {
     unitType: string;
     bathrooms: number;
@@ -39,8 +40,9 @@ async function marketplaceData(): Promise<{ listings: ListingCard[]; stats: Mark
       sizeSquareMetres: listing.unit.sizeSquareMetres ?? 0,
       bathrooms: listing.unit.bathrooms,
       verified: listing.badge?.state === "verified" || listing.badge?.state === "expiring",
-      verificationLabel: listing.badge?.state === "expiring" ? `${listing.badge.label} - expiring soon` : listing.badge?.label,
+      verificationLabel: listing.landlordBadge?.state === "unverified" ? listing.landlordBadge.label : listing.badge?.state === "expiring" ? `${listing.badge.label} - expiring soon` : listing.badge?.label,
       verificationExpiresAt: listing.badge?.expiresAt,
+      landlordBadge: listing.landlordBadge,
       imageUrl: listing.media[0]?.url ?? demoListings[index % demoListings.length].imageUrl
     })) };
   } catch {

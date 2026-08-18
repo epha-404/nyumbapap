@@ -10,6 +10,7 @@ export type ListingCard = {
   verified: boolean;
   verificationLabel?: string;
   verificationExpiresAt?: string | null;
+  landlordBadge?: { label: string; state: "verified" | "unverified" } | null;
   imageUrl: string;
 };
 

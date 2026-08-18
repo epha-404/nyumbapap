@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import type { AppRole } from "@nyumbapap/contracts";
 import * as DocumentPicker from "expo-document-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch, apiJson } from "@/lib/api";
+import { apiJson, apiMultipart } from "@/lib/api";
+import { createNativeFileFormData, type NativePickedFile } from "@/lib/native-multipart";
 import { Body, Button, Card, ErrorText, Field, H2 } from "./ui";
 
 type Onboarding = { role: Extract<AppRole, "LANDLORD" | "AGENT">; name: string; verificationState: string; hasCredential: boolean };
-type PickedFile = { uri: string; name: string; mimeType: string };
+type PickedFile = NativePickedFile;
 
 export function ProfessionalOnboarding() {
   const client = useQueryClient();
@@ -15,7 +16,7 @@ export function ProfessionalOnboarding() {
   const [credential, setCredential] = useState("");
   const [saved, setSaved] = useState<Onboarding | null>(null);
   const [file, setFile] = useState<PickedFile | null>(null);
-  const [busy, setBusy] = useState<"details" | "document" | null>(null);
+  const [busy, setBusy] = useState<"details" | "document" | "decline" | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const onboarding = saved ?? query.data?.onboarding ?? null;
@@ -28,7 +29,7 @@ export function ProfessionalOnboarding() {
     try {
       const body = onboarding.role === "AGENT" ? { agencyName: name, licenceNumber: credential } : { displayName: name, identityNumber: credential };
       const result = await apiJson<{ onboarding: Onboarding }>("onboarding", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-      setSaved(result.onboarding); setCredential(""); setMessage("Professional details saved. You can now upload the verification document.");
+      setSaved(result.onboarding); setMessage("Professional details saved. You can now upload the verification document.");
       await client.invalidateQueries({ queryKey: ["onboarding"] });
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not save professional details"); }
     finally { setBusy(null); }
@@ -47,15 +48,25 @@ export function ProfessionalOnboarding() {
     if (!file) return setError("Choose a verification document first.");
     setBusy("document"); setError(""); setMessage("");
     try {
-      const form = new FormData();
-      form.append("document", { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob);
-      const response = await apiFetch("onboarding/document", { method: "POST", body: form });
+      const form = createNativeFileFormData("document", [file]);
+      const response = await apiMultipart("onboarding/document", form);
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Could not upload the document");
       setFile(null); setMessage(result.message ?? "Document submitted for verification");
       setSaved(current => current ? { ...current, verificationState: "PENDING" } : current);
       await Promise.all([client.invalidateQueries({ queryKey: ["onboarding"] }), client.invalidateQueries({ queryKey: ["dashboard"] })]);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not upload the document"); }
+    finally { setBusy(null); }
+  }
+
+  async function declineDocument() {
+    if (onboarding?.role !== "LANDLORD" || !onboarding.hasCredential) return;
+    setBusy("decline"); setError(""); setMessage("");
+    try {
+      const result = await apiJson<{ onboarding: Onboarding }>("onboarding/decline-document", { method: "POST" });
+      setSaved(result.onboarding); setMessage("Unverified landlord tier selected. You can still submit an ID later.");
+      await Promise.all([client.invalidateQueries({ queryKey: ["onboarding"] }), client.invalidateQueries({ queryKey: ["dashboard"] })]);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not select the unverified tier"); }
     finally { setBusy(null); }
   }
 
@@ -70,6 +81,10 @@ export function ProfessionalOnboarding() {
     <Body muted>{file ? `Selected: ${file.name}` : "No verification document selected."}</Body>
     <Button secondary disabled={!onboarding.hasCredential} title="Choose verification document" onPress={chooseFile} />
     <Button secondary busy={busy === "document"} disabled={!onboarding.hasCredential || !file} title={busy === "document" ? "Uploading…" : "Submit verification document"} onPress={uploadDocument} />
+    {onboarding.role === "LANDLORD" && onboarding.hasCredential && onboarding.verificationState !== "APPROVED" ? <>
+      <Body muted>Prefer not to upload an ID? Continue as an unverified landlord. Tenants will see an “Unverified landlord” badge and equivalent verified listings rank higher.</Body>
+      <Button secondary busy={busy === "decline"} disabled={onboarding.verificationState === "UNVERIFIED"} title={onboarding.verificationState === "UNVERIFIED" ? "Unverified tier selected" : "Continue without ID verification"} onPress={declineDocument} />
+    </> : null}
     {!onboarding.hasCredential ? <ErrorText message="Save your professional details before uploading evidence." /> : null}
     <ErrorText message={error} />
     {message ? <Body>{message}</Body> : null}

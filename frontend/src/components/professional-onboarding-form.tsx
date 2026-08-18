@@ -10,7 +10,7 @@ import { IdentityDocumentUpload } from "./identity-document-upload";
 export type OnboardingData = {
   role: Extract<AppRole, "LANDLORD" | "AGENT">;
   name: string;
-  verificationState: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+  verificationState: "NOT_SUBMITTED" | "UNVERIFIED" | "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
   hasCredential: boolean;
 };
 
@@ -19,6 +19,7 @@ export function ProfessionalOnboardingForm({ onboarding }: { onboarding: Onboard
   const [current, setCurrent] = useState(onboarding);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [declining, setDeclining] = useState(false);
   useEffect(() => setCurrent(onboarding), [onboarding]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -37,8 +38,17 @@ export function ProfessionalOnboardingForm({ onboarding }: { onboarding: Onboard
     if (!response.ok) return setError(result.error ?? "Could not submit onboarding");
     if (result.onboarding) setCurrent(result.onboarding as OnboardingData);
     else setCurrent(value => ({ ...value, hasCredential: true, verificationState: "PENDING" }));
-    const credential = form.elements.namedItem(current.role === "AGENT" ? "licenceNumber" : "identityNumber");
-    if (credential instanceof HTMLInputElement) credential.value = "";
+    router.refresh();
+  }
+
+  async function declineDocument() {
+    setDeclining(true);
+    setError("");
+    const response = await csrfFetch("onboarding/decline-document", { method: "POST" });
+    const result = await response.json().catch(() => ({}));
+    setDeclining(false);
+    if (!response.ok) return setError(result.error ?? "Could not select the unverified tier");
+    setCurrent(value => ({ ...value, verificationState: "UNVERIFIED", hasCredential: true }));
     router.refresh();
   }
 
@@ -60,5 +70,9 @@ export function ProfessionalOnboardingForm({ onboarding }: { onboarding: Onboard
       <button className={styles.primary} disabled={busy}>{busy ? "Submitting..." : current.hasCredential ? "Resubmit details" : "Submit onboarding"}</button>
     </form>
     <IdentityDocumentUpload role={current.role} hasCredential={current.hasCredential} onUploaded={() => setCurrent(value => ({ ...value, verificationState: "PENDING" }))} />
+    {current.role === "LANDLORD" && current.hasCredential && current.verificationState !== "APPROVED" && <div className={styles.form}>
+      <p className={styles.muted}>Prefer not to upload an ID? You may continue as an unverified landlord. Tenants will see an “Unverified landlord” badge and these listings rank below equivalent verified listings.</p>
+      <button type="button" className={styles.secondary} disabled={declining || current.verificationState === "UNVERIFIED"} onClick={declineDocument}>{current.verificationState === "UNVERIFIED" ? "Unverified tier selected" : declining ? "Saving choice..." : "Continue without ID verification"}</button>
+    </div>}
   </section>;
 }

@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { NisokoObjectStorage } from "@/modules/storage/nisoko-storage";
 
 describe("NisokoObjectStorage", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.NISOKO_STORAGE_API_KEY;
+    delete process.env.NISOKO_STORAGE_CONTAINER;
+    delete process.env.NISOKO_PRIVATE_DOCUMENTS_CONTAINER;
+  });
 
   it("uploads listing images as multipart and uses the returned object reference", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
@@ -51,5 +56,33 @@ describe("NisokoObjectStorage", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(sleep).toHaveBeenNthCalledWith(1, 250);
     expect(sleep).toHaveBeenNthCalledWith(2, 500);
+  });
+
+  it("keeps private documents in their private container and retrieves byte-identical content", async () => {
+    const original = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 55]);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "document-id", filename: "identity.pdf", size: original.length, content_type: "application/pdf" }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(original, { status: 200, headers: { "content-type": "application/pdf" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    process.env.NISOKO_STORAGE_API_KEY = "private-key";
+    process.env.NISOKO_STORAGE_CONTAINER = "nyumba-pap-assets";
+    process.env.NISOKO_PRIVATE_DOCUMENTS_CONTAINER = "nyumba-pap-private-docs";
+
+    const storage = NisokoObjectStorage.privateDocumentsFromEnvironment();
+    const stored = await storage.put({ key: "identity.pdf", body: Buffer.from(original), contentType: "application/pdf" });
+    const retrieved = await storage.get(stored.key);
+
+    expect(fetchMock.mock.calls[0][0]).toContain("/containers/nyumba-pap-private-docs/upload");
+    expect(fetchMock.mock.calls[1][0]).toContain("/containers/nyumba-pap-private-docs/download/identity.pdf");
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({ headers: { "X-API-Key": "private-key" } });
+    expect(retrieved.body).toEqual(original);
+    expect(retrieved.cacheControl).toBe("private, no-store");
+  });
+
+  it("refuses to configure private documents in the public assets container", () => {
+    process.env.NISOKO_STORAGE_API_KEY = "private-key";
+    process.env.NISOKO_STORAGE_CONTAINER = "nyumba-pap-assets";
+    process.env.NISOKO_PRIVATE_DOCUMENTS_CONTAINER = "nyumba-pap-assets";
+    expect(() => NisokoObjectStorage.privateDocumentsFromEnvironment()).toThrow("Private documents must not use the public listing-media container");
   });
 });

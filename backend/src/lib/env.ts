@@ -34,6 +34,8 @@ const serverEnvSchema = z.object({
   ,NISOKO_STORAGE_API_URL: z.string().url().default("https://storage.nisoko.co.ke")
   ,NISOKO_STORAGE_API_KEY: z.string().startsWith("nsk_live_").optional()
   ,NISOKO_STORAGE_CONTAINER: z.string().min(3).default("nyumba-pap-assets")
+  ,NISOKO_PRIVATE_DOCUMENTS_CONTAINER: z.string().min(3).default("nyumba-pap-private-docs")
+  ,UNVERIFIED_LANDLORD_RANKING_FACTOR: z.coerce.number().positive().max(1).default(0.7)
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

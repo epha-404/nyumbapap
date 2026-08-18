@@ -1,7 +1,7 @@
 import type { PrivateObjectStorage, RetrievedObject, StoredObject } from "./provider";
 
 type UploadResponse = { id: string; filename: string; size: number; content_type: string };
-type StoredReference = { id: string; filename: string; contentType: string };
+type StoredReference = { id: string; filename: string; contentType: string; container?: string };
 const PREFIX = "nisoko:";
 const MAX_ATTEMPTS = 3;
 const encode = (reference: StoredReference) => `${PREFIX}${Buffer.from(JSON.stringify(reference)).toString("base64url")}`;
@@ -23,13 +23,22 @@ export class NisokoObjectStorage implements PrivateObjectStorage {
     private readonly apiKey: string,
     private readonly container: string,
     private readonly baseUrl = "https://storage.nisoko.co.ke",
-    private readonly sleep: (milliseconds: number) => Promise<void> = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))
+    private readonly sleep: (milliseconds: number) => Promise<void> = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
+    private readonly cacheControl = "public, max-age=31536000, immutable"
   ) {}
 
   static fromEnvironment() {
     const apiKey = process.env.NISOKO_STORAGE_API_KEY?.trim();
     if (!apiKey) throw new Error("NISOKO_STORAGE_API_KEY is required");
     return new NisokoObjectStorage(apiKey, process.env.NISOKO_STORAGE_CONTAINER ?? "nyumba-pap-assets", process.env.NISOKO_STORAGE_API_URL ?? "https://storage.nisoko.co.ke");
+  }
+
+  static privateDocumentsFromEnvironment() {
+    const apiKey = process.env.NISOKO_STORAGE_API_KEY?.trim();
+    if (!apiKey) throw new Error("NISOKO_STORAGE_API_KEY is required");
+    const container = process.env.NISOKO_PRIVATE_DOCUMENTS_CONTAINER?.trim() || "nyumba-pap-private-docs";
+    if (container === (process.env.NISOKO_STORAGE_CONTAINER ?? "nyumba-pap-assets")) throw new Error("Private documents must not use the public listing-media container");
+    return new NisokoObjectStorage(apiKey, container, process.env.NISOKO_STORAGE_API_URL ?? "https://storage.nisoko.co.ke", undefined, "private, no-store");
   }
 
   private headers() { return { "X-API-Key": this.apiKey }; }
@@ -63,14 +72,15 @@ export class NisokoObjectStorage implements PrivateObjectStorage {
     const uploaded = JSON.parse(text) as UploadResponse;
     if (!uploaded.id || !uploaded.filename) throw new NisokoStorageError("UPLOAD", response.status, false, "InvalidResponse");
     const contentType = uploaded.content_type || input.contentType;
-    return { key: encode({ id: uploaded.id, filename: uploaded.filename, contentType }), sizeBytes: uploaded.size || input.body.length, contentType };
+    return { key: encode({ id: uploaded.id, filename: uploaded.filename, contentType, container: this.container }), sizeBytes: uploaded.size || input.body.length, contentType };
   }
 
   async get(key: string): Promise<RetrievedObject> {
     const reference = decode(key);
-    const response = await this.request("DOWNLOAD", () => fetch(`${this.baseUrl}/api/v1/storage/containers/${encodeURIComponent(this.container)}/download/${encodeURIComponent(reference.filename)}`, { headers: this.headers(), signal: AbortSignal.timeout(20_000) }));
+    const container = reference.container ?? this.container;
+    const response = await this.request("DOWNLOAD", () => fetch(`${this.baseUrl}/api/v1/storage/containers/${encodeURIComponent(container)}/download/${encodeURIComponent(reference.filename)}`, { headers: this.headers(), signal: AbortSignal.timeout(20_000) }));
     if (!response.ok) throw new NisokoStorageError("DOWNLOAD", response.status, transientStatus(response.status));
-    return { body: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type") ?? reference.contentType, cacheControl: response.headers.get("cache-control") ?? "public, max-age=31536000, immutable" };
+    return { body: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type") ?? reference.contentType, cacheControl: this.cacheControl };
   }
 
   async delete(key: string) {

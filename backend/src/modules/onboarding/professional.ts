@@ -8,7 +8,7 @@ export async function professionalOnboardingSubmitted(principal: Principal) {
       where: { userId: principal.userId },
       select: { verificationState: true }
     });
-    return Boolean(profile && ["PENDING", "APPROVED"].includes(profile.verificationState));
+    return Boolean(profile && ["UNVERIFIED", "PENDING", "APPROVED"].includes(profile.verificationState));
   }
   if (principal.role === Role.AGENT) {
     const profile = await db.agentProfile.findUnique({
