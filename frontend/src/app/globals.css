@@ -21,6 +21,7 @@
 .notice{padding:18px 20px;background:#f5f2e9;border-left:4px solid #f2b84b;border-radius:8px}
 .landlord-verification{display:inline-flex;width:max-content;margin:4px 8px 4px 0;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:800;background:#e1f2ec;color:#075b49}.landlord-verification.unverified{background:#fff1d6;color:#7a4b00;border:1px solid #e7c47c}
 .property-action{margin-top:14px;padding:9px 13px;border:1px solid #075b49;border-radius:9px;background:#fff;color:#075b49;font-weight:800;cursor:pointer}.property-action:hover{background:#075b49;color:#fff}
+.form-error{padding:11px 13px;border-radius:9px;background:#fff1ee;color:#9b3029;font-weight:700}
 .modal-listing-facts{display:flex;flex-wrap:wrap;gap:8px 14px;margin:14px 0;color:#586963}.modal-listing-facts span:first-child{flex-basis:100%}.modal-listing-cta{display:block;margin-top:18px;text-align:center}
 .mobile-navigation{display:none}
 @media(max-width:900px){

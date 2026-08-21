@@ -11,6 +11,12 @@
       "expo-router",
       "expo-secure-store",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow NyumbaPap to use your approximate location to prioritize listings in your current town."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Allow NyumbaPap to select interior listing photos."

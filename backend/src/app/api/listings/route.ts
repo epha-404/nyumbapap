@@ -1,27 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { z } from "zod";
 import { badgeFor, VerificationKind } from "@/modules/verification/policy";
 import { landlordVerificationBadge, rankPublicListings } from "@/modules/listings/ranking";
+import { normalizeAvailableTowns, prioritizeDetectedTown, publicListingSearchSchema, publicListingWhere } from "@/modules/listings/public-search";
 
-const querySchema = z.object({ town: z.string().max(80).optional(), maxRent: z.coerce.number().int().positive().optional(), take: z.coerce.number().int().min(1).max(50).default(24) });
+const publicListingSelect = {
+  id: true, title: true, verificationState: true, expiresAt: true, publishedAt: true,
+  unit: { select: { unitType: true, bathrooms: true, sizeSquareMetres: true, monthlyRentKes: true, property: { select: { town: true, approximateArea: true, approximateLatitude: true, approximateLongitude: true, owner: { select: { landlordProfile: { select: { verificationState: true } } } } } } } },
+  media: { where: { moderationState: "APPROVED" as const }, orderBy: { sortOrder: "asc" as const }, take: 1, select: { id: true, width: true, height: true } }
+};
+
 export async function GET(request: NextRequest) {
-  const parsed = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
+  const parsed = publicListingSearchSchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
   if (!parsed.success) return NextResponse.json({ error: "Invalid search parameters" }, { status: 400 });
-  const { town, maxRent, take } = parsed.data;
-  const [rawListings, vacantHomes, coveredTowns, totalLandlords, verifiedLandlords, successfulUnlocks] = await Promise.all([db.listing.findMany({
-    where: { status: "PUBLISHED", lifecycleStatus: "ACTIVE", ...(town ? { unit: { property: { town: { equals: town, mode: "insensitive" } } } } : {}), ...(maxRent ? { unit: { monthlyRentKes: { lte: maxRent } } } : {}) },
+  const { town, nearTown, minRent, maxRent, take } = parsed.data;
+  const where = publicListingWhere({ town, minRent, maxRent });
+  const preferredTownListings = nearTown && !town
+    ? db.listing.findMany({ where: publicListingWhere({ town: nearTown, minRent, maxRent }), take: Math.min(150, take * 3), orderBy: { publishedAt: "desc" }, select: publicListingSelect })
+    : Promise.resolve([]);
+  const [rawListings, preferredListings, vacantHomes, coveredTowns, totalLandlords, verifiedLandlords, successfulUnlocks] = await Promise.all([db.listing.findMany({
+    where,
     take: Math.min(150, take * 3),
     orderBy: { publishedAt: "desc" },
-    select: { id: true, title: true, verificationState: true, expiresAt: true, publishedAt: true, unit: { select: { unitType: true, bathrooms: true, sizeSquareMetres: true, monthlyRentKes: true, property: { select: { town: true, approximateArea: true, approximateLatitude: true, approximateLongitude: true, owner: { select: { landlordProfile: { select: { verificationState: true } } } } } } } }, media: { where: { moderationState: "APPROVED" }, orderBy: { sortOrder: "asc" }, take: 1, select: { id: true, width: true, height: true } } }
+    select: publicListingSelect
   }),
+    preferredTownListings,
     db.listing.count({ where: { status: "PUBLISHED", lifecycleStatus: "ACTIVE" } }),
     db.property.groupBy({ by: ["town"], where: { units: { some: { listings: { some: { status: "PUBLISHED", lifecycleStatus: "ACTIVE" } } } } } }),
     db.landlordProfile.count(),
     db.landlordProfile.count({ where: { verificationState: "APPROVED" } }),
     db.tenantUnlock.count()
   ]);
-  const listings = rankPublicListings(rawListings.map(listing => ({ ...listing, landlordVerificationState: listing.unit.property.owner.landlordProfile?.verificationState ?? null }))).slice(0, take);
+  const mergedListings = [...preferredListings, ...rawListings.filter(listing => !preferredListings.some(preferred => preferred.id === listing.id))];
+  const ranked = rankPublicListings(mergedListings.map(listing => ({ ...listing, landlordVerificationState: listing.unit.property.owner.landlordProfile?.verificationState ?? null })));
+  const listings = prioritizeDetectedTown(ranked, town ? undefined : nearTown).slice(0, take);
+  const towns = normalizeAvailableTowns(coveredTowns);
   // The projection above is an allow-list: protected address, exact coordinates and contact fields cannot escape.
   return NextResponse.json({ data: listings.map((listing) => {
     const { owner: _owner, ...property } = listing.unit.property;
@@ -33,9 +46,9 @@ export async function GET(request: NextRequest) {
       landlordBadge: landlordVerificationBadge(landlordVerificationState),
       media: listing.media.map((image) => ({ ...image, url: `/api/listing-media/${image.id}` }))
     };
-  }), stats: {
+  }), towns, stats: {
     vacantHomes,
-    townsCovered: coveredTowns.length,
+    townsCovered: towns.length,
     verifiedLandlordPercent: totalLandlords ? Math.round((verifiedLandlords / totalLandlords) * 100) : null,
     successfulUnlocks
   } });
