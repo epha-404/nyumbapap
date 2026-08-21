@@ -81,7 +81,7 @@ export function ListingManager({
       <h2>{editing.title}</h2>
       <ListingForm key={editing.id} initial={editing} onSaved={saved} onCancel={() => setEditing(null)} />
     </section>}
-    <section className={styles.card} style={{ marginTop: 30 }}>
+    <section id="new-vacancy" className={styles.card} style={{ marginTop: 30 }}>
       <span className={styles.eyebrow}>New vacancy</span>
       <h2>List a property</h2>
       {canCreate

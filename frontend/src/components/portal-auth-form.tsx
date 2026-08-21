@@ -8,7 +8,7 @@ import { csrfFetch } from "@/lib/api";
 type RequestBody = { mode: "LOGIN" | "REGISTER"; email: string; displayName?: FormDataEntryValue; role?: FormDataEntryValue };
 type Challenge = { email: string; request: RequestBody };
 
-export function PortalAuthForm({ mode, returnTo = "/dashboard", initialEmail = "" }: { mode: "login" | "register"; returnTo?: string; initialEmail?: string }) {
+export function PortalAuthForm({ mode, returnTo = "/dashboard", initialEmail = "", initialRole = "CLIENT" }: { mode: "login" | "register"; returnTo?: string; initialEmail?: string; initialRole?: "CLIENT" | "LANDLORD" | "AGENT" }) {
   const router = useRouter();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [error, setError] = useState("");
@@ -103,7 +103,7 @@ export function PortalAuthForm({ mode, returnTo = "/dashboard", initialEmail = "
   return <form key="email-entry" className={styles.form} onSubmit={requestCode}>
     {mode === "register" && <>
       <label>Full name<input name="displayName" autoComplete="name" required minLength={2} maxLength={80} placeholder="e.g. Amina Kamau" /></label>
-      <label>Account type<select name="role" defaultValue="CLIENT"><option value="CLIENT">Client / home seeker</option><option value="LANDLORD">Landlord</option><option value="AGENT">Property agent</option></select></label>
+      <label>Account type<select name="role" defaultValue={initialRole}><option value="CLIENT">Client / home seeker</option><option value="LANDLORD">Landlord</option><option value="AGENT">Property agent</option></select></label>
     </>}
     <label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com" defaultValue={initialEmail} /></label>
     {error && <p className={styles.error} role="alert">{error}</p>}

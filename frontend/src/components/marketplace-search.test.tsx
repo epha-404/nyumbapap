@@ -33,4 +33,12 @@ describe("web marketplace server-backed search", () => {
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("nearLat=-1.286") && String(url).includes("nearLng=36.817"))).toBe(true));
     expect(await screen.findByText("Prioritizing homes in Nairobi from your approximate location.")).toBeTruthy();
   });
+
+  it("routes property owners into the real listing workflow without the stale foundation modal", () => {
+    render(<Marketplace initialListings={[listing]} initialTowns={["Nakuru"]} stats={stats} listPropertyHref="/dashboard/landlord#new-vacancy" />);
+    const links = screen.getAllByRole("link", { name: /list (a|your) property/i });
+    expect(links).toHaveLength(3);
+    expect(links.every(link => link.getAttribute("href") === "/dashboard/landlord#new-vacancy")).toBe(true);
+    expect(screen.queryByText(/production foundation intentionally does not simulate/i)).toBeNull();
+  });
 });
