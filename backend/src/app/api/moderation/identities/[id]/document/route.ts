@@ -23,7 +23,12 @@ export async function GET(request: Request, { params }: Context) {
         "content-security-policy": "default-src 'none'; sandbox"
       }
     });
-  } catch {
+  } catch (error) {
+    console.error("Identity document retrieval failed", {
+      recordId: id,
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error)
+    });
     return NextResponse.json({ error: "Document could not be loaded" }, { status: 404 });
   }
 }

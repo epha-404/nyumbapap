@@ -62,6 +62,7 @@ describe("NisokoObjectStorage", () => {
     const original = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 55]);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: "document-id", filename: "identity.pdf", size: original.length, content_type: "application/pdf" }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ signed_url: "https://storage.nisoko.co.ke/private-download?token=signed" }), { status: 200 }))
       .mockResolvedValueOnce(new Response(original, { status: 200, headers: { "content-type": "application/pdf" } }));
     vi.stubGlobal("fetch", fetchMock);
     process.env.NISOKO_STORAGE_API_KEY = "private-key";
@@ -73,8 +74,10 @@ describe("NisokoObjectStorage", () => {
     const retrieved = await storage.get(stored.key);
 
     expect(fetchMock.mock.calls[0][0]).toContain("/containers/nyumba-pap-private-docs/upload");
-    expect(fetchMock.mock.calls[1][0]).toContain("/containers/nyumba-pap-private-docs/download/identity.pdf");
+    expect(fetchMock.mock.calls[1][0]).toContain("/containers/nyumba-pap-private-docs/files/identity.pdf/signed");
     expect(fetchMock.mock.calls[1][1]).toMatchObject({ headers: { "X-API-Key": "private-key" } });
+    expect(fetchMock.mock.calls[2][0]).toContain("/private-download?token=signed");
+    expect(fetchMock.mock.calls[2][1]).not.toHaveProperty("headers.X-API-Key");
     expect(retrieved.body).toEqual(original);
     expect(retrieved.cacheControl).toBe("private, no-store");
   });

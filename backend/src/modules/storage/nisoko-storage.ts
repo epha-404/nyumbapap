@@ -1,6 +1,7 @@
 import type { PrivateObjectStorage, RetrievedObject, StoredObject } from "./provider";
 
 type UploadResponse = { id: string; filename: string; size: number; content_type: string };
+type SignedUrlResponse = { signed_url?: string };
 type StoredReference = { id: string; filename: string; contentType: string; container?: string };
 const PREFIX = "nisoko:";
 const MAX_ATTEMPTS = 3;
@@ -78,7 +79,18 @@ export class NisokoObjectStorage implements PrivateObjectStorage {
   async get(key: string): Promise<RetrievedObject> {
     const reference = decode(key);
     const container = reference.container ?? this.container;
-    const response = await this.request("DOWNLOAD", () => fetch(`${this.baseUrl}/api/v1/storage/containers/${encodeURIComponent(container)}/download/${encodeURIComponent(reference.filename)}`, { headers: this.headers(), signal: AbortSignal.timeout(20_000) }));
+    let downloadUrl = `${this.baseUrl}/api/v1/storage/containers/${encodeURIComponent(container)}/download/${encodeURIComponent(reference.filename)}`;
+    if (this.cacheControl.startsWith("private")) {
+      const signedResponse = await this.request("SIGN", () => fetch(`${this.baseUrl}/api/v1/storage/containers/${encodeURIComponent(container)}/files/${encodeURIComponent(reference.filename)}/signed`, { headers: this.headers(), signal: AbortSignal.timeout(20_000) }));
+      const text = await signedResponse.text();
+      if (!signedResponse.ok) throw new NisokoStorageError("SIGN", signedResponse.status, transientStatus(signedResponse.status));
+      const signedUrl = (JSON.parse(text) as SignedUrlResponse).signed_url;
+      if (!signedUrl) throw new NisokoStorageError("SIGN", signedResponse.status, false, "InvalidResponse");
+      const parsed = new URL(signedUrl);
+      if (parsed.protocol !== "https:" || parsed.origin !== new URL(this.baseUrl).origin) throw new NisokoStorageError("SIGN", signedResponse.status, false, "InvalidOrigin");
+      downloadUrl = signedUrl;
+    }
+    const response = await this.request("DOWNLOAD", () => fetch(downloadUrl, { signal: AbortSignal.timeout(20_000) }));
     if (!response.ok) throw new NisokoStorageError("DOWNLOAD", response.status, transientStatus(response.status));
     return { body: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type") ?? reference.contentType, cacheControl: this.cacheControl };
   }
