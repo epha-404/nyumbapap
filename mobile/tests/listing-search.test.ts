@@ -3,8 +3,9 @@ import { listingSearchPath, normalizedBudgetRange, townFromGeocode } from "@/lib
 
 describe("mobile listing search", () => {
   it("builds a combined server query and omits detected town when a town is selected", () => {
-    expect(listingSearchPath({ town: "Nakuru", minRent: 15000, maxRent: 40000 }, "Kisumu")).toBe("listings?town=Nakuru&minRent=15000&maxRent=40000");
-    expect(listingSearchPath({ town: null, minRent: null, maxRent: null }, "Kisumu")).toBe("listings?nearTown=Kisumu");
+    const detected = { town: "Kisumu", latitude: -0.1022, longitude: 34.7617 };
+    expect(listingSearchPath({ town: "Nakuru", minRent: 15000, maxRent: 40000 }, detected)).toBe("listings?town=Nakuru&minRent=15000&maxRent=40000");
+    expect(listingSearchPath({ town: null, minRent: null, maxRent: null }, detected)).toBe("listings?nearTown=Kisumu&nearLat=-0.1022&nearLng=34.7617");
   });
 
   it("keeps the budget range valid", () => {

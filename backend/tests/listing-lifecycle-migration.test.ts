@@ -9,4 +9,10 @@ describe("listing lifecycle migration", () => {
     expect(schema).toMatch(/lastConfirmedAt\s+DateTime\s+@default\(now\(\)\)/);
     expect(setup).toContain('last_confirmed_at: { $ifNull: ["$created_at", "$$NOW"] }');
   });
+
+  it("installs the MongoDB 2dsphere index used by public proximity ranking", () => {
+    const setup = readFileSync(new URL("../scripts/setup-mongodb.ts", import.meta.url), "utf8");
+    expect(setup).toContain('createIndex({ search_point: "2dsphere" }');
+    expect(setup).toContain('name: "properties_search_point_2dsphere"');
+  });
 });

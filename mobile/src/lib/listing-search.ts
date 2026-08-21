@@ -2,12 +2,18 @@ export type ListingSearchPreferences = { town: string | null; minRent: number | 
 
 export const initialListingSearchPreferences: ListingSearchPreferences = { town: null, minRent: null, maxRent: null };
 
-export function listingSearchPath(preferences: ListingSearchPreferences, nearTown?: string | null) {
+export type DetectedLocation = { town?: string | null; latitude: number; longitude: number };
+
+export function listingSearchPath(preferences: ListingSearchPreferences, detected?: DetectedLocation | null) {
   const params = new URLSearchParams();
   if (preferences.town) params.set("town", preferences.town);
   if (preferences.minRent !== null) params.set("minRent", String(preferences.minRent));
   if (preferences.maxRent !== null) params.set("maxRent", String(preferences.maxRent));
-  if (!preferences.town && nearTown) params.set("nearTown", nearTown);
+  if (!preferences.town && detected) {
+    if (detected.town) params.set("nearTown", detected.town);
+    params.set("nearLat", String(detected.latitude));
+    params.set("nearLng", String(detected.longitude));
+  }
   const query = params.toString();
   return `listings${query ? `?${query}` : ""}`;
 }

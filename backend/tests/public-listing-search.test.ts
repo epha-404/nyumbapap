@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeAvailableTowns, prioritizeDetectedTown, publicListingSearchSchema, publicListingWhere } from "@/modules/listings/public-search";
+import { normalizeAvailableTowns, publicListingSearchSchema, publicListingWhere } from "@/modules/listings/public-search";
 
 describe("public listing search", () => {
   it("combines a selected town with minimum and maximum rent", () => {
@@ -26,11 +26,5 @@ describe("public listing search", () => {
 
   it("returns distinct sorted active-town values", () => {
     expect(normalizeAvailableTowns([{ town: "Nairobi" }, { town: " Kisumu " }, { town: "Nairobi" }])).toEqual(["Kisumu", "Nairobi"]);
-  });
-
-  it("prioritizes a detected town and preserves recent fallback order when there is no match", () => {
-    const listings = ["Nairobi", "Kisumu", "Nakuru"].map((town, index) => ({ id: index, unit: { property: { town } } }));
-    expect(prioritizeDetectedTown(listings, "Kisumu").map(listing => listing.unit.property.town)).toEqual(["Kisumu", "Nairobi", "Nakuru"]);
-    expect(prioritizeDetectedTown(listings, "Mombasa")).toEqual(listings);
   });
 });

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const dbMock = vi.hoisted(() => ({
+  $runCommandRaw: vi.fn(),
   listing: { findMany: vi.fn(), count: vi.fn() },
   property: { groupBy: vi.fn() },
   landlordProfile: { count: vi.fn() },
@@ -23,6 +24,7 @@ describe("public listings route search contract", () => {
     dbMock.property.groupBy.mockResolvedValue([{ town: "Nakuru" }, { town: "Nairobi" }, { town: "Nakuru" }]);
     dbMock.landlordProfile.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
     dbMock.tenantUnlock.count.mockResolvedValue(0);
+    dbMock.$runCommandRaw.mockResolvedValue({ cursor: { firstBatch: [] } });
   });
 
   it("applies combined filters and returns distinct active towns", async () => {
@@ -35,5 +37,18 @@ describe("public listings route search contract", () => {
     } }));
     expect(body.towns).toEqual(["Nairobi", "Nakuru"]);
     expect(body.data[0].unit.property).not.toHaveProperty("owner");
+  });
+
+  it("uses MongoDB geospatial proximity for coordinate ranking", async () => {
+    const response = await GET(new NextRequest("http://localhost:3001/api/listings?nearLat=-1.286389&nearLng=36.817223"));
+    expect(response.status).toBe(200);
+    expect(dbMock.$runCommandRaw).toHaveBeenCalledWith(expect.objectContaining({
+      aggregate: "properties",
+      pipeline: expect.arrayContaining([expect.objectContaining({ $geoNear: expect.objectContaining({
+        near: { type: "Point", coordinates: [36.817223, -1.286389] },
+        key: "search_point",
+        spherical: true
+      }) })])
+    }));
   });
 });

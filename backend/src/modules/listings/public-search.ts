@@ -25,13 +25,14 @@ export const publicListingSearchSchema = z.object({
 
 export type PublicListingSearch = z.infer<typeof publicListingSearchSchema>;
 
-export function publicListingWhere(filters: Pick<PublicListingSearch, "town" | "minRent" | "maxRent">) {
+export function publicListingWhere(filters: Pick<PublicListingSearch, "town" | "minRent" | "maxRent"> & { propertyIds?: readonly string[] }) {
   const rent = {
     ...(filters.minRent !== undefined ? { gte: filters.minRent } : {}),
     ...(filters.maxRent !== undefined ? { lte: filters.maxRent } : {})
   };
   const unit = {
     ...(filters.town ? { property: { town: { equals: filters.town, mode: "insensitive" as const } } } : {}),
+    ...(filters.propertyIds ? { propertyId: { in: [...filters.propertyIds] } } : {}),
     ...(Object.keys(rent).length ? { monthlyRentKes: rent } : {})
   };
   return {
@@ -43,13 +44,4 @@ export function publicListingWhere(filters: Pick<PublicListingSearch, "town" | "
 
 export function normalizeAvailableTowns(rows: readonly { town: string }[]) {
   return [...new Set(rows.map(row => row.town.trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right, "en-KE"));
-}
-
-export function prioritizeDetectedTown<T extends { unit: { property: { town: string } } }>(listings: readonly T[], nearTown?: string) {
-  if (!nearTown) return [...listings];
-  const normalized = nearTown.trim().toLocaleLowerCase("en-KE");
-  const matching = listings.filter(listing => listing.unit.property.town.trim().toLocaleLowerCase("en-KE") === normalized);
-  if (!matching.length) return [...listings];
-  const matchingSet = new Set(matching);
-  return [...matching, ...listings.filter(listing => !matchingSet.has(listing))];
 }

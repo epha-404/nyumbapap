@@ -19,9 +19,9 @@ const budgetOptions = [10_000, 15_000, 25_000, 40_000, 70_000, 100_000];
 export default function Marketplace() {
   const { preferences, setPreferences } = useListingSearch();
   const [type, setType] = useState("all");
-  const [detectedTown, setDetectedTown] = useState<string | null>(null);
+  const [detectedLocation, setDetectedLocation] = useState<{ town: string | null; latitude: number; longitude: number } | null>(null);
   const [locationSettled, setLocationSettled] = useState(false);
-  const path = listingSearchPath(preferences, detectedTown);
+  const path = listingSearchPath(preferences, detectedLocation);
   const query = useQuery({ queryKey: ["listings", path], queryFn: () => apiJson<ListingsPayload>(path) });
   const filtered = useMemo(() => (query.data?.data ?? []).filter(item => type === "all" || item.unit.unitType === type), [query.data, type]);
 
@@ -33,7 +33,11 @@ export default function Marketplace() {
         if (permission.status !== "granted") return;
         const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const places = await Location.reverseGeocodeAsync(position.coords);
-        if (active) setDetectedTown(townFromGeocode(places[0] ?? {}));
+        if (active) setDetectedLocation({
+          town: townFromGeocode(places[0] ?? {}),
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
       } catch {
         // Location is an optional ranking hint. Search remains usable without it.
       } finally {
@@ -73,8 +77,8 @@ export default function Marketplace() {
         <View style={s.budgetField}><Text style={s.label}>Minimum rent</Text><View style={s.pickerShell}><Picker selectedValue={preferences.minRent ?? 0} onValueChange={value => setMinimum(value || null)} style={s.picker}><Picker.Item label="No minimum" value={0} />{budgetOptions.map(value => <Picker.Item key={value} label={`KSh ${value.toLocaleString("en-KE")}`} value={value} />)}</Picker></View></View>
         <View style={s.budgetField}><Text style={s.label}>Maximum rent</Text><View style={s.pickerShell}><Picker selectedValue={preferences.maxRent ?? 0} onValueChange={value => setMaximum(value || null)} style={s.picker}><Picker.Item label="No maximum" value={0} />{budgetOptions.map(value => <Picker.Item key={value} label={`KSh ${value.toLocaleString("en-KE")}`} value={value} />)}</Picker></View></View>
       </View>
-      {!preferences.town && detectedTown ? <Text style={s.locationHint}>Prioritizing homes in {detectedTown} from your approximate location.</Text> : null}
-      {!preferences.town && !detectedTown && !locationSettled ? <Text style={s.locationHint}>Checking your current town…</Text> : null}
+      {!preferences.town && detectedLocation?.town ? <Text style={s.locationHint}>Prioritizing homes near {detectedLocation.town} from your approximate location.</Text> : null}
+      {!preferences.town && !detectedLocation && !locationSettled ? <Text style={s.locationHint}>Checking your current town…</Text> : null}
     </View>
 
     <View style={s.stats}>{[[query.data?.stats.vacantHomes ?? 0, "vacant homes"], [query.data?.stats.townsCovered ?? 0, "towns covered"], [query.data?.stats.verifiedLandlordPercent ?? "—", "verified landlords"], [query.data?.stats.successfulUnlocks ?? 0, "successful unlocks"]].map(([value, label]) => <View style={s.stat} key={label}><Text style={s.statValue}>{value}{label === "verified landlords" && value !== "—" ? "%" : ""}</Text><Text style={s.statLabel}>{label}</Text></View>)}</View>
