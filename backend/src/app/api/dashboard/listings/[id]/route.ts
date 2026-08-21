@@ -121,7 +121,7 @@ export async function PUT(request: Request, { params }: Context) {
               approximateLatitude: coarse.latitude,
               approximateLongitude: coarse.longitude,
               searchPoint: { type: "Point", coordinates: [coarse.longitude, coarse.latitude] },
-              exactAddressEncrypted: protectListingField(d.address),
+              exactAddressEncrypted: protectListingField(d.address || "Exact location confirmed by landlord map pin"),
               exactCoordinatesEncrypted: protectListingField(JSON.stringify({ latitude: d.latitude, longitude: d.longitude })),
               contactEncrypted: protectListingField(d.contact)
             }

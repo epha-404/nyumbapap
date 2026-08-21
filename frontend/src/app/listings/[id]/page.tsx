@@ -5,6 +5,7 @@ import { backendFetch } from "@/lib/server-api";
 import portal from "../../portal.module.css";
 import detail from "./listing-detail.module.css";
 import { ListingUnlock } from "@/components/listing-unlock";
+import { formatLocationLabel } from "@/modules/listings/location-label";
 
 type ListingDetail = {
   id: string;
@@ -50,7 +51,7 @@ export default async function PublicListingPage({ params }: { params: Promise<{ 
           {(listing.badge.state === "verified" || listing.badge.state === "expiring") && <span className={portal.badge}>{listing.badge.label}{listing.badge.state === "expiring" ? " - expiring soon" : ""}</span>}
           {listing.landlordBadge && <span className={`landlord-verification ${listing.landlordBadge.state}`}>{listing.landlordBadge.label}</span>}
           <h1 className={portal.title}>{listing.title}</h1>
-          <p className={portal.muted}>{listing.unit.property.approximateArea}, {listing.unit.property.town}, {listing.unit.property.county}</p>
+          <p className={portal.muted}>{formatLocationLabel(listing.unit.property.approximateArea, listing.unit.property.town, listing.unit.property.county)}</p>
         </div>
         <div className={portal.card}>
           <div className={portal.price}>KSh {listing.unit.monthlyRentKes.toLocaleString("en-KE")}</div>

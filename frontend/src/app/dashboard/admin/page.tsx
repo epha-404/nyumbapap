@@ -5,6 +5,7 @@ import { UnlockFeeConfigForm, type UnlockFeeConfig } from "@/components/unlock-f
 import { ModerationPortal, type ModerationData } from "@/components/moderation-portal";
 import { backendFetch } from "@/lib/server-api";
 import styles from "../../portal.module.css";
+import { formatLocationLabel } from "@/modules/listings/location-label";
 
 type AdminDashboardData = {
   displayName: string;
@@ -51,7 +52,7 @@ export default async function AdminDashboard() {
     </tbody></table></div>
     <h2>Listings</h2>
     <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Listing</th><th>Location</th><th>Rent</th><th>Status</th></tr></thead><tbody>
-      {data.listings.map((listing) => <tr key={listing.id}><td>{listing.title}</td><td>{listing.area}, {listing.town}</td><td>KSh {listing.monthlyRentKes.toLocaleString("en-KE")}</td><td>{listing.status}</td></tr>)}
+      {data.listings.map((listing) => <tr key={listing.id}><td>{listing.title}</td><td>{formatLocationLabel(listing.area, listing.town)}</td><td>KSh {listing.monthlyRentKes.toLocaleString("en-KE")}</td><td>{listing.status}</td></tr>)}
     </tbody></table></div>
     {config ? <UnlockFeeConfigForm initialConfig={config} /> : <section className={styles.card}><h2>Payment configuration unavailable</h2><p className={styles.muted}>The rest of the administration dashboard remains available. Refresh to retry this panel.</p></section>}
   </main></div>;

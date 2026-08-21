@@ -72,6 +72,12 @@ export function ProfessionalOnboarding() {
 
   if (query.isLoading) return <Card><Body muted>Loading professional verification…</Body></Card>;
   if (query.error || !onboarding) return <Card><ErrorText message={query.error instanceof Error ? query.error.message : "Could not load professional verification"} /></Card>;
+  if (onboarding.verificationState === "APPROVED") return <Card>
+    <H2>Professional verification</H2>
+    <Body>✓ Verified</Body>
+    <Body>{onboarding.name}</Body>
+    <Body muted>Your professional details and identity evidence have been approved.</Body>
+  </Card>;
   return <Card>
     <H2>Professional verification</H2>
     <Body muted>Status: {onboarding.verificationState.replaceAll("_", " ")}</Body>
@@ -81,7 +87,7 @@ export function ProfessionalOnboarding() {
     <Body muted>{file ? `Selected: ${file.name}` : "No verification document selected."}</Body>
     <Button secondary disabled={!onboarding.hasCredential} title="Choose verification document" onPress={chooseFile} />
     <Button secondary busy={busy === "document"} disabled={!onboarding.hasCredential || !file} title={busy === "document" ? "Uploading…" : "Submit verification document"} onPress={uploadDocument} />
-    {onboarding.role === "LANDLORD" && onboarding.hasCredential && onboarding.verificationState !== "APPROVED" ? <>
+    {onboarding.role === "LANDLORD" && onboarding.hasCredential ? <>
       <Body muted>Prefer not to upload an ID? Continue as an unverified landlord. Tenants will see an “Unverified landlord” badge and equivalent verified listings rank higher.</Body>
       <Button secondary busy={busy === "decline"} disabled={onboarding.verificationState === "UNVERIFIED"} title={onboarding.verificationState === "UNVERIFIED" ? "Unverified tier selected" : "Continue without ID verification"} onPress={declineDocument} />
     </> : null}

@@ -8,7 +8,7 @@ export const listingInputSchema = z.object({
   county: z.string().trim().min(2).max(80),
   town: z.string().trim().min(2).max(80),
   area: z.string().trim().min(2).max(100),
-  address: z.string().trim().min(3).max(200),
+  address: z.string().trim().max(200).optional().default(""),
   contact: z.string().trim().min(10).max(20),
   unitType: z.string().trim().min(2).max(40),
   bedrooms: z.coerce.number().int().min(0).max(20),

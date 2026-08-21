@@ -52,6 +52,16 @@ export function ProfessionalOnboardingForm({ onboarding }: { onboarding: Onboard
     router.refresh();
   }
 
+  if (current.verificationState === "APPROVED") {
+    return <section className={styles.card}>
+      <span className={styles.eyebrow}>{current.role === "AGENT" ? "Agent onboarding" : "Landlord onboarding"}</span>
+      <h2>Professional verification</h2>
+      <span className={styles.badge} aria-label="Verified">✓ Verified</span>
+      <p><strong>{current.name}</strong></p>
+      <p className={styles.muted}>Your professional details and identity evidence have been approved.</p>
+    </section>;
+  }
+
   return <section className={styles.card}>
     <span className={styles.eyebrow}>{current.role === "AGENT" ? "Agent onboarding" : "Landlord onboarding"}</span>
     <h2>Professional verification</h2>
@@ -70,7 +80,7 @@ export function ProfessionalOnboardingForm({ onboarding }: { onboarding: Onboard
       <button className={styles.primary} disabled={busy}>{busy ? "Submitting..." : current.hasCredential ? "Resubmit details" : "Submit onboarding"}</button>
     </form>
     <IdentityDocumentUpload role={current.role} hasCredential={current.hasCredential} onUploaded={() => setCurrent(value => ({ ...value, verificationState: "PENDING" }))} />
-    {current.role === "LANDLORD" && current.hasCredential && current.verificationState !== "APPROVED" && <div className={styles.form}>
+    {current.role === "LANDLORD" && current.hasCredential && <div className={styles.form}>
       <p className={styles.muted}>Prefer not to upload an ID? You may continue as an unverified landlord. Tenants will see an “Unverified landlord” badge and these listings rank below equivalent verified listings.</p>
       <button type="button" className={styles.secondary} disabled={declining || current.verificationState === "UNVERIFIED"} onClick={declineDocument}>{current.verificationState === "UNVERIFIED" ? "Unverified tier selected" : declining ? "Saving choice..." : "Continue without ID verification"}</button>
     </div>}

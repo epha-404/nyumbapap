@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { badgeFor, VerificationKind } from "@/modules/verification/policy";
 import { landlordVerificationBadge, rankPublicListings } from "@/modules/listings/ranking";
 import { normalizeAvailableTowns, prioritizeDetectedTown, publicListingSearchSchema, publicListingWhere } from "@/modules/listings/public-search";
+import { resolveTownAtCoordinates } from "@/modules/listings/location";
 
 const publicListingSelect = {
   id: true, title: true, verificationState: true, expiresAt: true, publishedAt: true,
@@ -13,10 +14,15 @@ const publicListingSelect = {
 export async function GET(request: NextRequest) {
   const parsed = publicListingSearchSchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
   if (!parsed.success) return NextResponse.json({ error: "Invalid search parameters" }, { status: 400 });
-  const { town, nearTown, minRent, maxRent, take } = parsed.data;
+  const { town, nearTown, nearLat, nearLng, minRent, maxRent, take } = parsed.data;
+  const detectedTown = !town && nearTown
+    ? nearTown
+    : !town && nearLat !== undefined && nearLng !== undefined
+      ? await resolveTownAtCoordinates({ latitude: nearLat, longitude: nearLng }).catch(() => undefined)
+      : undefined;
   const where = publicListingWhere({ town, minRent, maxRent });
-  const preferredTownListings = nearTown && !town
-    ? db.listing.findMany({ where: publicListingWhere({ town: nearTown, minRent, maxRent }), take: Math.min(150, take * 3), orderBy: { publishedAt: "desc" }, select: publicListingSelect })
+  const preferredTownListings = detectedTown && !town
+    ? db.listing.findMany({ where: publicListingWhere({ town: detectedTown, minRent, maxRent }), take: Math.min(150, take * 3), orderBy: { publishedAt: "desc" }, select: publicListingSelect })
     : Promise.resolve([]);
   const [rawListings, preferredListings, vacantHomes, coveredTowns, totalLandlords, verifiedLandlords, successfulUnlocks] = await Promise.all([db.listing.findMany({
     where,
@@ -33,7 +39,7 @@ export async function GET(request: NextRequest) {
   ]);
   const mergedListings = [...preferredListings, ...rawListings.filter(listing => !preferredListings.some(preferred => preferred.id === listing.id))];
   const ranked = rankPublicListings(mergedListings.map(listing => ({ ...listing, landlordVerificationState: listing.unit.property.owner.landlordProfile?.verificationState ?? null })));
-  const listings = prioritizeDetectedTown(ranked, town ? undefined : nearTown).slice(0, take);
+  const listings = prioritizeDetectedTown(ranked, detectedTown).slice(0, take);
   const towns = normalizeAvailableTowns(coveredTowns);
   // The projection above is an allow-list: protected address, exact coordinates and contact fields cannot escape.
   return NextResponse.json({ data: listings.map((listing) => {
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
       landlordBadge: landlordVerificationBadge(landlordVerificationState),
       media: listing.media.map((image) => ({ ...image, url: `/api/listing-media/${image.id}` }))
     };
-  }), towns, stats: {
+  }), towns, detectedTown: detectedTown ?? null, stats: {
     vacantHomes,
     townsCovered: towns.length,
     verifiedLandlordPercent: totalLandlords ? Math.round((verifiedLandlords / totalLandlords) * 100) : null,

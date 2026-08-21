@@ -9,6 +9,7 @@ import { ProfessionalOnboarding } from "@/components/professional-onboarding";
 import { MobileModerationPortal, type MobileModerationData } from "@/components/moderation-portal";
 import { Body, Button, Card, Eyebrow, H1, H2, Screen } from "@/components/ui";
 import { colors, spacing, typography } from "../../theme";
+import { formatLocationLabel } from "@/lib/location-label";
 
 export default function Dashboard() {
   const auth = useAuth();
@@ -34,7 +35,7 @@ function DashboardBody({ role, data, moderation, moderationLoading, moderationEr
     <ProfessionalOnboarding />
     <View style={s.metrics}>{Object.entries(data.stats ?? {}).filter(([, value]) => typeof value === "number").map(([key, value]) => <Card key={key} style={s.metricCard}><Text style={s.metric}>{Number(value).toLocaleString("en-KE")}</Text><Body muted>{key.replace(/([A-Z])/g, " $1").toLowerCase()}</Body></Card>)}</View>
     <H2>Your properties</H2>
-    {(data.listings ?? []).map((listing: any) => <Card key={listing.id}><Text style={s.badge}>{listing.status}</Text><H2>{listing.title}</H2><Body muted>{listing.area}, {listing.town}</Body><Text style={s.price}>KSh {listing.monthlyRentKes.toLocaleString("en-KE")}</Text><InteriorImageUpload listingId={listing.id} /></Card>)}
+    {(data.listings ?? []).map((listing: any) => <Card key={listing.id}><Text style={s.badge}>{listing.status}</Text><H2>{listing.title}</H2><Body muted>{formatLocationLabel(listing.area, listing.town)}</Body><Text style={s.price}>KSh {listing.monthlyRentKes.toLocaleString("en-KE")}</Text><InteriorImageUpload listingId={listing.id} /></Card>)}
     {!data.listings?.length ? <Card><Body muted>No listings yet. Create one, then upload its interior photos here.</Body></Card> : null}
   </>;
   if (role === "VERIFIER") return <MobileModerationPortal initialData={data as MobileModerationData} />;

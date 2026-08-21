@@ -11,7 +11,7 @@ export type ApiListing = {
   media: Array<{ id: string; url: string; width: number; height: number }>;
 };
 
-export type PublicListingsPayload<TStats> = { data: ApiListing[]; towns: string[]; stats: TStats };
+export type PublicListingsPayload<TStats> = { data: ApiListing[]; towns: string[]; detectedTown?: string | null; stats: TStats };
 
 export function listingCardsFromApi(listings: readonly ApiListing[]): ListingCard[] {
   return listings.map((listing, index) => ({

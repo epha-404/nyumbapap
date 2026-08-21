@@ -18,7 +18,7 @@ vi.mock("@/components/ui", () => ({
   Body: ({ children }: { children: React.ReactNode }) => React.createElement("body-text", null, children),
   Button: ({ title, onPress }: { title: string; onPress: () => void }) => React.createElement("button", { title, onPress }, title),
   Card: ({ children }: { children: React.ReactNode }) => React.createElement("card", null, children),
-  Field: (props: unknown) => React.createElement("field", props),
+  Field: (props: Record<string, unknown>) => React.createElement("field", props),
   H2: ({ children }: { children: React.ReactNode }) => React.createElement("heading", null, children)
 }));
 

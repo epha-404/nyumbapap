@@ -2,13 +2,17 @@ import React from "react";
 import { act, create } from "react-test-renderer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ apiJson: vi.fn(), invalidateQueries: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  apiJson: vi.fn(),
+  invalidateQueries: vi.fn(),
+  onboarding: { role: "LANDLORD", name: "Amina", verificationState: "REJECTED", hasCredential: true }
+}));
 
 vi.mock("react-native", () => ({}));
 vi.mock("expo-document-picker", () => ({ getDocumentAsync: vi.fn() }));
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
-  useQuery: () => ({ isLoading: false, error: null, data: { onboarding: { role: "LANDLORD", name: "Amina", verificationState: "REJECTED", hasCredential: true } } })
+  useQuery: () => ({ isLoading: false, error: null, data: { onboarding: mocks.onboarding } })
 }));
 vi.mock("@/lib/api", () => ({ apiJson: mocks.apiJson, apiMultipart: vi.fn() }));
 vi.mock("@/components/ui", () => ({
@@ -25,6 +29,7 @@ import { ProfessionalOnboarding } from "@/components/professional-onboarding";
 describe("mobile professional onboarding", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.assign(mocks.onboarding, { role: "LANDLORD", name: "Amina", verificationState: "REJECTED", hasCredential: true });
     mocks.apiJson.mockResolvedValue({ onboarding: { role: "LANDLORD", name: "Amina", verificationState: "PENDING", hasCredential: true } });
   });
 
@@ -47,5 +52,14 @@ describe("mobile professional onboarding", () => {
     const decline = screen!.root.findAllByType("button").find(button => button.props.title === "Continue without ID verification")!;
     await act(async () => { await decline.props.onPress(); });
     expect(mocks.apiJson).toHaveBeenCalledWith("onboarding/decline-document", { method: "POST" });
+  });
+
+  it("shows approved verification without editable or upload controls", () => {
+    Object.assign(mocks.onboarding, { verificationState: "APPROVED" });
+    let screen: ReturnType<typeof create>;
+    act(() => { screen = create(<ProfessionalOnboarding />); });
+    expect(screen!.root.findAllByType("field" as never)).toHaveLength(0);
+    expect(screen!.root.findAllByType("button" as never)).toHaveLength(0);
+    expect(screen!.root.findAllByType("body-text" as never).map(node => node.children.join(" "))).toContain("✓ Verified");
   });
 });

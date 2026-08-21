@@ -23,7 +23,7 @@ const nextConfig = {
     return [{ source: "/(.*)", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
       { key: "X-Frame-Options", value: "DENY" },
       ...(process.env.NODE_ENV === "production" ? [{ key: "Cross-Origin-Opener-Policy", value: "same-origin" }] : []),
       { key: "Content-Security-Policy", value: `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https://images.unsplash.com https://*.tile.openstreetmap.org; ${scriptSrc}; style-src 'self' 'unsafe-inline'; connect-src 'self'` }

@@ -75,3 +75,19 @@ export async function deriveCoarseLocation(exact: Coordinates): Promise<CoarseLo
   if (!town || !area) throw new Error("LOCATION_TEXT_UNRESOLVED");
   return { ...point, town, area };
 }
+
+export async function resolveTownAtCoordinates(point: Coordinates) {
+  if (!coordinatesAreInKenya(point)) throw new Error("COORDINATES_OUTSIDE_KENYA");
+  const url = new URL("https://nominatim.openstreetmap.org/reverse");
+  url.searchParams.set("lat", String(point.latitude));
+  url.searchParams.set("lon", String(point.longitude));
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("zoom", "10");
+  url.searchParams.set("addressdetails", "1");
+  const response = await fetch(url, { headers: headers(), signal: AbortSignal.timeout(8_000) });
+  if (!response.ok) throw new Error("GEOCODING_UNAVAILABLE");
+  const address = ((await response.json()) as { address?: NominatimAddress }).address ?? {};
+  const town = address.city ?? address.town ?? address.municipality ?? address.village ?? address.county;
+  if (!town) throw new Error("LOCATION_TEXT_UNRESOLVED");
+  return town;
+}

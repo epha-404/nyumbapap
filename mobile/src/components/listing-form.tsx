@@ -49,12 +49,12 @@ export function ListingForm({ onCreated, onCancel }: { onCreated?: (listingId: s
     finally { setBusy(false); }
   }
 
-  const fields = [["title", "Listing title"], ["description", "Description"], ["county", "County"], ["town", "Town"], ["area", "Area"], ["address", "Exact address"], ["contact", "Owner contact"], ["unitType", "Home type"], ["bedrooms", "Bedrooms"], ["bathrooms", "Bathrooms"], ["size", "Size (square metres)"], ["rent", "Monthly rent (KES)"], ["deposit", "Deposit (KES)"]];
+  const fields = [["title", "Listing title"], ["description", "Description"], ["county", "County"], ["town", "Town"], ["area", "Area"], ["address", "Nearest landmark or building name (optional)"], ["contact", "Owner contact"], ["unitType", "Home type"], ["bedrooms", "Bedrooms"], ["bathrooms", "Bathrooms"], ["size", "Size (square metres)"], ["rent", "Monthly rent (KES)"], ["deposit", "Deposit (KES)"]];
   return <Card>
     <H2>List a property</H2>
-    <Body muted>Exact addresses and coordinates stay protected. The backend derives the public coarse location.</Body>
+    <Body muted>Set the exact location with the map pin. A landmark is optional; exact coordinates and notes stay protected while the backend derives the public coarse location.</Body>
     {fields.map(([key, label]) => <Field key={key} label={label} value={values[key] ?? ""} onChangeText={value => set(key, value)} multiline={key === "description"} keyboardType={["bedrooms", "bathrooms", "size", "rent", "deposit"].includes(key) ? "number-pad" : "default"} />)}
-    <Button secondary busy={locating} disabled={(values.address ?? "").trim().length < 3} title={locating ? "Locating…" : "Locate address"} onPress={locate} />
+    <Button secondary busy={locating} disabled={(values.address ?? "").trim().length < 3} title={locating ? "Locating…" : "Locate landmark"} onPress={locate} />
     <MapView style={s.map} region={{ ...point, latitudeDelta: .18, longitudeDelta: .18 }} onPress={(event: MapPressEvent) => move(event.nativeEvent.coordinate)}><Marker coordinate={point} draggable pinColor={colors.orange} onDragEnd={(event: MarkerDragStartEndEvent) => move(event.nativeEvent.coordinate)} /></MapView>
     <View style={s.confirm}><Text style={s.label}>Confirm exact pin location</Text><Switch value={confirmed} onValueChange={setConfirmed} trackColor={{ true: colors.green }} /></View>
     <ErrorText message={error} />

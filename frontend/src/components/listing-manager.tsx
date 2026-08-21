@@ -6,6 +6,7 @@ import styles from "@/app/portal.module.css";
 import { apiPath, csrfFetch } from "@/lib/api";
 import { ListingForm, type ListingFields } from "./listing-form";
 import { ListingImageUpload } from "./listing-image-upload";
+import { formatLocationLabel } from "@/modules/listings/location-label";
 
 type ListingSummary = {
   id: string;
@@ -66,7 +67,7 @@ export function ListingManager({
       {listings.map((listing) => <article className={`${styles.card} ${styles.listing}`} key={listing.id}>
         <span className={styles.badge}>{listing.status}</span>
         <h3>{listing.title}</h3>
-        <span>{listing.area}, {listing.town}</span>
+        <span>{formatLocationLabel(listing.area, listing.town)}</span>
         <span className={styles.price}>KSh {listing.monthlyRentKes.toLocaleString("en-KE")}</span>
         <div className={styles.actions}>
           <button className={styles.secondary} type="button" disabled={busyId === listing.id} onClick={() => edit(listing.id)}>Edit</button>

@@ -1,16 +1,25 @@
 import { z } from "zod";
+import { coordinatesAreInKenya } from "./location";
 
 const optionalTown = z.string().trim().min(2).max(80).optional();
 
 export const publicListingSearchSchema = z.object({
   town: optionalTown,
   nearTown: optionalTown,
+  nearLat: z.coerce.number().optional(),
+  nearLng: z.coerce.number().optional(),
   minRent: z.coerce.number().int().min(0).optional(),
   maxRent: z.coerce.number().int().positive().optional(),
   take: z.coerce.number().int().min(1).max(50).default(24)
 }).superRefine(({ minRent, maxRent }, context) => {
   if (minRent !== undefined && maxRent !== undefined && minRent > maxRent) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Minimum rent cannot exceed maximum rent", path: ["minRent"] });
+  }
+}).superRefine(({ nearLat, nearLng }, context) => {
+  if ((nearLat === undefined) !== (nearLng === undefined)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Both location coordinates are required", path: ["nearLat"] });
+  } else if (nearLat !== undefined && nearLng !== undefined && !coordinatesAreInKenya({ latitude: nearLat, longitude: nearLng })) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Detected location must be inside Kenya", path: ["nearLat"] });
   }
 });
 

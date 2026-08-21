@@ -19,7 +19,7 @@ vi.mock("@/modules/listings/listing-data", async (importOriginal) => ({ ...(awai
 
 import { POST } from "@/app/api/dashboard/listings/route";
 
-const validBody = { title: "Bright apartment", description: "A bright apartment close to public transport.", county: "Nairobi", town: "Nairobi", area: "Kilimani", address: "Example road", contact: "0712345678", unitType: "1 Bedroom", bedrooms: 1, bathrooms: 1, size: 45, rent: 25000, deposit: 25000, latitude: -1.29, longitude: 36.78, locationConfirmed: true };
+const validBody = { title: "Bright apartment", description: "A bright apartment close to public transport.", county: "Nairobi", town: "Nairobi", area: "Kilimani", contact: "0712345678", unitType: "1 Bedroom", bedrooms: 1, bathrooms: 1, size: 45, rent: 25000, deposit: 25000, latitude: -1.29, longitude: 36.78, locationConfirmed: true };
 function request(key = "12345678-1234-4234-9234-123456789012") { return new Request("http://localhost/api/dashboard/listings", { method: "POST", headers: { "content-type": "application/json", "idempotency-key": key }, body: JSON.stringify(validBody) }); }
 
 describe("listing creation idempotency", () => {

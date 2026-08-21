@@ -43,4 +43,13 @@ describe("professional onboarding document upload", () => {
     await screen.findByRole("button", { name: "Unverified tier selected" });
     expect(mocks.csrfFetch).toHaveBeenCalledWith("onboarding/decline-document", { method: "POST" });
   });
+
+  it("shows an approved landlord as a compact read-only verified state", () => {
+    render(<ProfessionalOnboardingForm onboarding={{ role: "LANDLORD", name: "Amina", verificationState: "APPROVED", hasCredential: true }} />);
+    expect(screen.getByLabelText("Verified")).toBeTruthy();
+    expect(screen.getByText("Amina")).toBeTruthy();
+    expect(screen.queryByLabelText("National ID or passport number")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resubmit details" })).toBeNull();
+    expect(screen.queryByText("Submit verification document")).toBeNull();
+  });
 });

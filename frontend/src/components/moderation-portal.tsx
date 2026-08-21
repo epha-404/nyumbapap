@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { csrfFetch } from "@/lib/api";
 import portal from "@/app/portal.module.css";
+import { formatLocationLabel } from "@/modules/listings/location-label";
 import styles from "@/app/dashboard/verifier/moderation.module.css";
 
 type IdentityItem = { id: string; kind: string; role: string; subjectName: string; submittedAt: string; documentUrl: string };
@@ -44,7 +45,7 @@ export function ModerationPortal({ initialData }: { initialData: ModerationData 
       <div className={styles.sectionHeader}><div><span className={portal.eyebrow}>Listing queue</span><h2>New property submissions</h2></div><span className={portal.badge}>{initialData.listings.length} pending</span></div>
       {!initialData.listings.length && <p className={portal.muted}>No new listings are awaiting interior-photo review.</p>}
       <div className={styles.queue}>{initialData.listings.map((item) => <article className={styles.reviewCard} key={item.id}>
-        <div><h3>{item.title}</h3><p className={portal.muted}>{item.unitType} · {item.area}, {item.town} · KSh {item.monthlyRentKes.toLocaleString("en-KE")} · submitted {new Date(item.submittedAt).toLocaleString("en-KE")}</p></div>
+        <div><h3>{item.title}</h3><p className={portal.muted}>{item.unitType} · {formatLocationLabel(item.area, item.town)} · KSh {item.monthlyRentKes.toLocaleString("en-KE")} · submitted {new Date(item.submittedAt).toLocaleString("en-KE")}</p></div>
         <p className={portal.muted}>The listing remains pending until its submitted interior photos are reviewed.</p>
       </article>)}</div>
     </section>

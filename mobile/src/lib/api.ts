@@ -53,13 +53,17 @@ type MultipartResponse = Pick<Response, "ok" | "status" | "json" | "text">;
 
 async function sendNativeMultipart(path: string, body: FormData, forceCsrf = false): Promise<MultipartResponse> {
   const headers = await authenticatedHeaders("POST", undefined, forceCsrf);
+  const url = `${API_BASE}/api/${path.replace(/^\/?api\/?|^\//, "")}`;
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
-    request.open("POST", `${API_BASE}/api/${path.replace(/^\/?api\/?|^\//, "")}`);
+    request.open("POST", url);
     headers.forEach((value, key) => request.setRequestHeader(key, value));
-    request.timeout = 30_000;
-    request.onerror = () => reject(new Error("Could not reach the server"));
-    request.ontimeout = () => reject(new Error("The upload timed out"));
+    request.timeout = 120_000;
+    request.onerror = () => {
+      console.error("Native multipart transport failed", { host: new URL(API_BASE).host, path, readyState: request.readyState, status: request.status });
+      reject(new Error(`Could not reach the NyumbaPap API at ${new URL(API_BASE).host}. Check your connection and retry.`));
+    };
+    request.ontimeout = () => reject(new Error("The upload timed out while the image was being processed. Retry this photo."));
     request.onload = () => {
       const responseText = typeof request.responseText === "string" ? request.responseText : "";
       resolve({

@@ -41,13 +41,13 @@ export function ListingForm({
   const [locating, setLocating] = useState(false);
   const [point, setPoint] = useState({ latitude: initial?.latitude ?? -1.286389, longitude: initial?.longitude ?? 36.817223 });
   const [locationConfirmed, setLocationConfirmed] = useState(Boolean(initial?.locationConfirmed));
-  const [address, setAddress] = useState(initial?.address ?? "");
+  const [locationNote, setLocationNote] = useState(initial?.address ?? "");
   const idempotencyKey = useRef(crypto.randomUUID());
 
   async function locate() {
     setLocating(true);
     setError("");
-    const response = await fetch(`${apiPath("geocoding/locate")}?q=${encodeURIComponent(address)}`, { credentials: "same-origin", cache: "no-store" });
+    const response = await fetch(`${apiPath("geocoding/locate")}?q=${encodeURIComponent(locationNote)}`, { credentials: "same-origin", cache: "no-store" });
     const result = await response.json().catch(() => ({}));
     setLocating(false);
     if (!response.ok) return setError(result.error ?? "Could not locate this address");
@@ -81,7 +81,7 @@ export function ListingForm({
       <label>County<input name="county" required defaultValue={initial?.county ?? "Nairobi"} /></label>
       <label>Town (coarse value is resolved on save)<input name="town" required defaultValue={initial?.town ?? "Nairobi"} /></label>
       <label>Area (coarse value is resolved on save)<input name="area" required defaultValue={initial?.area ?? "Pending location lookup"} /></label>
-      <label>Exact address<input name="address" required value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Kept private" /></label>
+      <label>Nearest landmark or building name (optional)<input name="address" value={locationNote} onChange={(event) => setLocationNote(event.target.value)} placeholder="For example: near Nyangati Market" /></label>
       <label>Owner contact<input name="contact" required defaultValue={initial?.contact} placeholder="07XX XXX XXX" /></label>
       <label>Home type<select name="unitType" defaultValue={initial?.unitType ?? "1 Bedroom"}><option>Bedsitter</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option></select></label>
       <label>Bedrooms<input name="bedrooms" type="number" min="0" max="20" defaultValue={initial?.bedrooms ?? 1} required /></label>
@@ -92,9 +92,9 @@ export function ListingForm({
     </div>
     <section>
       <h3>Exact unit location</h3>
-      <p className={styles.muted}>Locate the address or click and drag the pin. The exact point stays encrypted; only a randomly displaced point is public.</p>
+      <p className={styles.muted}>Search using the optional landmark above, or click and drag the pin directly. The confirmed point stays encrypted; only a randomly displaced point is public.</p>
       <div className={styles.actions}>
-        <button className={styles.secondary} type="button" disabled={locating || address.trim().length < 3} onClick={locate}>{locating ? "Locating…" : "Locate address"}</button>
+        <button className={styles.secondary} type="button" disabled={locating || locationNote.trim().length < 3} onClick={locate}>{locating ? "Locating…" : "Locate landmark"}</button>
         <button className={styles.secondary} type="button" onClick={() => setLocationConfirmed(true)}>Confirm pin location</button>
       </div>
       <LocationPinMap point={point} onChange={(next) => { setPoint(next); setLocationConfirmed(false); }} />
