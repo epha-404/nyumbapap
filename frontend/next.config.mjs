@@ -16,6 +16,9 @@ const nextConfig = {
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${apiBaseUrl}/api/:path*` }];
   },
+  async redirects() {
+    return [{ source: "/favicon.ico", destination: "/icons/icon-192.png", permanent: true }];
+  },
   async headers() {
     return [{ source: "/(.*)", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },

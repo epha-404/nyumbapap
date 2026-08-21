@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { calculateUnlockFee } from "@/modules/payments/unlock-fee";
+import { describe, expect, it, vi } from "vitest";
+import { calculateUnlockFee, DEFAULT_UNLOCK_FEE_CONFIG, getOrCreateUnlockFeeConfig } from "@/modules/payments/unlock-fee";
 
 const config = { rate: 0.025, floorKes: 100, ceilingKes: 800 };
 
@@ -20,5 +20,17 @@ describe("rent-based unlock fee", () => {
   it("rejects invalid rent and configuration values", () => {
     expect(() => calculateUnlockFee(-1, config)).toThrow("INVALID_MONTHLY_RENT");
     expect(() => calculateUnlockFee(10_000, { ...config, ceilingKes: 50 })).toThrow("INVALID_UNLOCK_FEE_CONFIG");
+  });
+
+  it("creates the editable default configuration when a deployment has no config row", async () => {
+    const unlockFeeConfig = {
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn().mockResolvedValue({ ...DEFAULT_UNLOCK_FEE_CONFIG, updatedAt: new Date() })
+    };
+    await getOrCreateUnlockFeeConfig({ unlockFeeConfig } as never);
+    expect(unlockFeeConfig.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "default" },
+      create: { id: "default", ...DEFAULT_UNLOCK_FEE_CONFIG }
+    }));
   });
 });

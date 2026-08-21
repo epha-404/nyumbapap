@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { Action, authorizeRequest, Resource } from "@/modules/auth/authorization";
 import { verifyCsrfRequest } from "@/modules/auth/request-security";
 import { enforceWriteRateLimit } from "@/modules/rate-limit/write-rate-limit";
-import { UNLOCK_FEE_CONFIG_ID } from "@/modules/payments/unlock-fee";
+import { getOrCreateUnlockFeeConfig, UNLOCK_FEE_CONFIG_ID } from "@/modules/payments/unlock-fee";
 
 const inputSchema = z.object({
   rate: z.number().positive().max(1),
@@ -29,8 +29,7 @@ function response(config: { rate: unknown; floorKes: number; ceilingKes: number;
 export async function GET(request: Request) {
   const authorization = authorizeRequest(request, permission);
   if (!authorization.ok) return authorization.response;
-  const config = await db.unlockFeeConfig.findUnique({ where: { id: UNLOCK_FEE_CONFIG_ID } });
-  if (!config) return NextResponse.json({ error: "Unlock fee configuration is missing" }, { status: 503 });
+  const config = await getOrCreateUnlockFeeConfig(db);
   return NextResponse.json({ config: response(config) });
 }
 
