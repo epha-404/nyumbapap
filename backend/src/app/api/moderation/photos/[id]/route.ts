@@ -6,6 +6,7 @@ import { clientIpHash, verifyCsrfRequest } from "@/modules/auth/request-security
 import { ensureAuditEventsImmutable } from "@/modules/verification/audit";
 import { protectVerificationNotes } from "@/modules/verification/documents";
 import { verificationExpiresAt, VerificationKind } from "@/modules/verification/policy";
+import { listingImageStorage } from "@/modules/storage/listing-image-storage";
 
 type Context = { params: Promise<{ id: string }> };
 const decisionSchema = z.object({ decision: z.enum(["APPROVE", "REJECT"]), notes: z.string().trim().max(1000).optional().default("") });
@@ -19,11 +20,23 @@ export async function PATCH(request: Request, { params }: Context) {
   const { id } = await params;
   const media = await db.listingMedia.findUnique({
     where: { id },
-    select: { id: true, listingId: true, moderationState: true, listing: { select: { unit: { select: { property: { select: { ownerId: true } } } } } } }
+    select: { id: true, listingId: true, storageKey: true, moderationState: true, listing: { select: { unit: { select: { property: { select: { ownerId: true } } } } } } }
   });
   if (!media) return NextResponse.json({ error: "Photo not found" }, { status: 404 });
   if (media.moderationState !== "PENDING") return NextResponse.json({ error: "This photo has already been reviewed" }, { status: 409 });
   const approved = parsed.data.decision === "APPROVE";
+  if (approved) {
+    try {
+      await listingImageStorage().get(media.storageKey);
+    } catch (error) {
+      console.error("Listing photo approval blocked because the stored image is unavailable", {
+        mediaId: id,
+        listingId: media.listingId,
+        error: error instanceof Error ? error.message : "Unknown storage error"
+      });
+      return NextResponse.json({ error: "This photo file is unavailable. Ask the landlord to upload it again before approval." }, { status: 409 });
+    }
+  }
   const state = approved ? "APPROVED" : "REJECTED";
   const reviewedAt = new Date();
   const photoExpiresAt = approved ? verificationExpiresAt(VerificationKind.LISTING_PHOTO, reviewedAt) : null;
