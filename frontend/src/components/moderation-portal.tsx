@@ -7,7 +7,7 @@ import { formatLocationLabel } from "@/modules/listings/location-label";
 import styles from "@/app/dashboard/verifier/moderation.module.css";
 
 type IdentityItem = { id: string; kind: string; role: string; subjectName: string; submittedAt: string; documentUrl: string };
-type PhotoItem = { id: string; listingId: string; listingTitle: string; width: number; height: number; submittedAt: string; contentUrl: string };
+type PhotoItem = { id: string; listingId: string; listingTitle: string; submitterName?: string; width: number; height: number; submittedAt: string; contentUrl: string };
 type ListingItem = { id: string; title: string; unitType: string; monthlyRentKes: number; town: string; area: string; submittedAt: string };
 type Badge = { label: string; validDays: number; expiringSoonDays: number };
 export type ModerationData = { badgeDefinitions: Record<string, Badge>; identities: IdentityItem[]; photos: PhotoItem[]; listings: ListingItem[] };

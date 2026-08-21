@@ -87,4 +87,19 @@ describe("listing photo approval", () => {
     await expect(response.json()).resolves.toMatchObject({ error: expect.stringContaining("upload it again") });
     expect(mocks.db.$transaction).not.toHaveBeenCalled();
   });
+
+  it("returns the listing and submitter metadata needed by web and mobile review screens", async () => {
+    mocks.db.listingMedia.findMany.mockResolvedValue([{
+      id: "photo-1", listingId: "listing-1", width: 1200, height: 800, createdAt: new Date("2026-08-21T10:05:00.000Z"),
+      listing: { title: "Garden flat", unit: { property: { owner: {
+        landlordProfile: { displayName: "Amina Owner" }, agentProfile: null, account: { displayName: "Amina" }
+      } } } }
+    }]);
+    const response = await moderationQueue(new Request("http://localhost:3001/api/moderation/queue"));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ photos: [{
+      id: "photo-1", listingId: "listing-1", listingTitle: "Garden flat", submitterName: "Amina Owner",
+      contentUrl: "/api/moderation/photos/photo-1/content"
+    }] });
+  });
 });

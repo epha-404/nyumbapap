@@ -17,8 +17,19 @@ export type MobileIdentityItem = {
 
 export type MobileModerationData = {
   identities: MobileIdentityItem[];
-  photos: Array<{ id: string }>;
+  photos: MobilePhotoItem[];
   listings: Array<{ id: string }>;
+};
+
+export type MobilePhotoItem = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  submitterName: string;
+  width: number;
+  height: number;
+  submittedAt: string;
+  contentUrl: string;
 };
 
 function extensionFor(contentType: string) {

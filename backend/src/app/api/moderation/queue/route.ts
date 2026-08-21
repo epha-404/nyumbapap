@@ -23,7 +23,14 @@ export async function GET(request: Request) {
     db.listingMedia.findMany({
       where: { moderationState: "PENDING" },
       orderBy: { createdAt: "asc" },
-      select: { id: true, listingId: true, width: true, height: true, createdAt: true, listing: { select: { title: true } } }
+      select: { id: true, listingId: true, width: true, height: true, createdAt: true, listing: { select: {
+        title: true,
+        unit: { select: { property: { select: { owner: { select: {
+          account: { select: { displayName: true } },
+          landlordProfile: { select: { displayName: true } },
+          agentProfile: { select: { agencyName: true } }
+        } } } } } }
+      } } }
     }),
     db.listing.findMany({
       where: { status: "PENDING_REVIEW" },
@@ -48,6 +55,10 @@ export async function GET(request: Request) {
     })),
     photos: photos.map((item) => ({
       id: item.id, listingId: item.listingId, listingTitle: item.listing.title,
+      submitterName: item.listing.unit.property.owner.landlordProfile?.displayName
+        ?? item.listing.unit.property.owner.agentProfile?.agencyName
+        ?? item.listing.unit.property.owner.account?.displayName
+        ?? "Property owner",
       width: item.width, height: item.height, submittedAt: item.createdAt,
       contentUrl: `/api/moderation/photos/${item.id}/content`
     }))

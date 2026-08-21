@@ -12,7 +12,7 @@ const data: ModerationData = {
   badgeDefinitions: {},
   identities: [],
   listings: [{ id: "listing-1", title: "Garden flat", unitType: "1 Bedroom", monthlyRentKes: 25_000, town: "Nairobi", area: "Kilimani", submittedAt: "2026-08-21T10:00:00.000Z" }],
-  photos: [{ id: "photo-1", listingId: "listing-1", listingTitle: "Garden flat", width: 1200, height: 800, submittedAt: "2026-08-21T10:05:00.000Z", contentUrl: "/api/moderation/photos/photo-1/content" }]
+  photos: [{ id: "photo-1", listingId: "listing-1", listingTitle: "Garden flat", submitterName: "Amina Owner", width: 1200, height: 800, submittedAt: "2026-08-21T10:05:00.000Z", contentUrl: "/api/moderation/photos/photo-1/content" }]
 };
 
 describe("photo moderation portal", () => {

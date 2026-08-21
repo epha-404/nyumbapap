@@ -7,6 +7,7 @@ import { InteriorImageUpload } from "@/components/interior-image-upload";
 import { ListPropertyCta } from "@/components/list-property-cta";
 import { ProfessionalOnboarding } from "@/components/professional-onboarding";
 import { MobileModerationPortal, type MobileModerationData } from "@/components/moderation-portal";
+import { AdminPhotoReviewCta } from "@/components/admin-photo-review-cta";
 import { Body, Button, Card, Eyebrow, H1, H2, Screen } from "@/components/ui";
 import { colors, spacing, typography } from "../../theme";
 import { formatLocationLabel } from "@/lib/location-label";
@@ -40,7 +41,7 @@ function DashboardBody({ role, data, moderation, moderationLoading, moderationEr
   </>;
   if (role === "VERIFIER") return <MobileModerationPortal initialData={data as MobileModerationData} />;
   const stats = data.stats ?? {};
-  return <>{<View style={s.metrics}>{Object.entries(stats).map(([key, value]) => <Metric key={key} label={key.replace(/([A-Z])/g, " $1").toLowerCase()} value={typeof value === "number" ? value : 0} />)}</View>}{role === "ADMIN" ? <>{moderationLoading ? <Body muted>Loading verification queue…</Body> : moderationError ? <Card><Body muted>{moderationError.message}</Body></Card> : moderation ? <MobileModerationPortal initialData={moderation} /> : null}</> : null}</>;
+  return <>{<View style={s.metrics}>{Object.entries(stats).map(([key, value]) => <Metric key={key} label={key.replace(/([A-Z])/g, " $1").toLowerCase()} value={typeof value === "number" ? value : 0} />)}</View>}{role === "ADMIN" ? <>{moderationLoading ? <Body muted>Loading verification queue…</Body> : moderationError ? <Card><Body muted>{moderationError.message}</Body></Card> : moderation ? <><AdminPhotoReviewCta pending={moderation.photos.length} /><MobileModerationPortal initialData={moderation} /></> : null}</> : null}</>;
 }
 
 function Metric({ label, value }: { label: string; value: number }) { return <Card style={s.metricCard}><Text style={s.metric}>{value.toLocaleString("en-KE")}</Text><Body muted>{label}</Body></Card>; }
