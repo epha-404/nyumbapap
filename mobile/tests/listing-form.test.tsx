@@ -15,6 +15,12 @@ vi.mock("react-native-maps", () => ({
   default: (props: { children?: React.ReactNode }) => React.createElement("map", null, props.children),
   Marker: () => React.createElement("marker")
 }));
+vi.mock("@react-native-picker/picker", () => ({
+  Picker: Object.assign(
+    (props: { children?: React.ReactNode }) => React.createElement("picker", props, props.children),
+    { Item: (props: Record<string, unknown>) => React.createElement("picker-item", props) }
+  )
+}));
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }) }));
 vi.mock("expo-crypto", () => ({ randomUUID: () => "12345678-1234-4234-9234-123456789012" }));
 vi.mock("@/lib/api", () => ({ apiJson: mocks.apiJson }));
@@ -55,5 +61,12 @@ describe("mobile listing form", () => {
       body: expect.stringContaining('"locationConfirmed":"true"')
     }));
     expect(onCreated).toHaveBeenCalledWith("listing-created");
+  });
+
+  it("offers Single room immediately after Bedsitter", () => {
+    let screen: ReturnType<typeof create>;
+    act(() => { screen = create(<ListingForm />); });
+    const options = screen!.root.findAllByType("picker-item" as never).map((item) => item.props.label);
+    expect(options.slice(0, 2)).toEqual(["Bedsitter", "Single room"]);
   });
 });

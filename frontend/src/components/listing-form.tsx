@@ -4,6 +4,7 @@ import { FormEvent, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import styles from "@/app/portal.module.css";
 import { apiPath, csrfFetch } from "@/lib/api";
+import { UNIT_TYPES } from "@/modules/listings/unit-types";
 
 const LocationPinMap = dynamic(() => import("./location-pin-map").then((module) => module.LocationPinMap), { ssr: false });
 
@@ -83,7 +84,7 @@ export function ListingForm({
       <label>Area (coarse value is resolved on save)<input name="area" required defaultValue={initial?.area ?? "Pending location lookup"} /></label>
       <label>Nearest landmark or building name (optional)<input name="address" value={locationNote} onChange={(event) => setLocationNote(event.target.value)} placeholder="For example: near Nyangati Market" /></label>
       <label>Owner contact<input name="contact" required defaultValue={initial?.contact} placeholder="07XX XXX XXX" /></label>
-      <label>Home type<select name="unitType" defaultValue={initial?.unitType ?? "1 Bedroom"}><option>Bedsitter</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option></select></label>
+      <label>Home type<select name="unitType" defaultValue={initial?.unitType ?? "1 Bedroom"}>{UNIT_TYPES.map((unitType) => <option key={unitType}>{unitType}</option>)}</select></label>
       <label>Bedrooms<input name="bedrooms" type="number" min="0" max="20" defaultValue={initial?.bedrooms ?? 1} required /></label>
       <label>Bathrooms<input name="bathrooms" type="number" min="1" max="20" defaultValue={initial?.bathrooms ?? 1} required /></label>
       <label>Size (square metres)<input name="size" type="number" min="10" max="10000" defaultValue={initial?.size ?? 45} required /></label>

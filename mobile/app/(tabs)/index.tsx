@@ -6,6 +6,7 @@ import { Picker } from "@react-native-picker/picker";
 import { ImageBackground, StyleSheet, Text, View } from "react-native";
 import { apiJson } from "@/lib/api";
 import { listingSearchPath, normalizedBudgetRange, townFromGeocode } from "@/lib/listing-search";
+import { UNIT_TYPES } from "@/lib/unit-types";
 import type { ListingCard as Listing } from "@/lib/types";
 import { ListingCard } from "@/components/listing-card";
 import { Body, Button, Eyebrow, H2, Screen } from "@/components/ui";
@@ -84,7 +85,7 @@ export default function Marketplace() {
     <View style={s.stats}>{[[query.data?.stats.vacantHomes ?? 0, "vacant homes"], [query.data?.stats.townsCovered ?? 0, "towns covered"], [query.data?.stats.verifiedLandlordPercent ?? "—", "verified landlords"], [query.data?.stats.successfulUnlocks ?? 0, "successful unlocks"]].map(([value, label]) => <View style={s.stat} key={label}><Text style={s.statValue}>{value}{label === "verified landlords" && value !== "—" ? "%" : ""}</Text><Text style={s.statLabel}>{label}</Text></View>)}</View>
     <View style={s.section}>
       <Eyebrow>Available now</Eyebrow><H2>Homes worth moving for</H2>
-      <View style={s.chips}>{["all", "Bedsitter", "1 Bedroom", "2 Bedroom", "3 Bedroom"].map(value => <Text key={value} onPress={() => setType(value)} style={[s.chip, type === value && s.chipActive]}>{value === "all" ? "All homes" : value}</Text>)}</View>
+      <View style={s.chips}>{["all", ...UNIT_TYPES].map(value => <Text key={value} onPress={() => setType(value)} style={[s.chip, type === value && s.chipActive]}>{value === "all" ? "All homes" : value}</Text>)}</View>
       {query.isLoading ? <Body muted>Loading verified homes…</Body> : query.error ? <Body muted>Homes could not be loaded. Pull to try again.</Body> : filtered.map(listing => <ListingCard key={listing.id} listing={listing} />)}
       {!query.isLoading && !filtered.length ? <View style={s.empty}><H2>No exact matches yet</H2><Body muted>Try a different town, home type, or budget range.</Body></View> : null}
     </View>

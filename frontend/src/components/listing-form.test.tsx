@@ -17,4 +17,10 @@ describe("web listing exact-location form", () => {
     expect(screen.getByLabelText("Exact listing location map")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Confirm pin location" })).toBeTruthy();
   });
+
+  it("offers Single room immediately after Bedsitter", () => {
+    render(<ListingForm />);
+    const options = screen.getAllByRole("option").map((option) => option.textContent);
+    expect(options.slice(0, 2)).toEqual(["Bedsitter", "Single room"]);
+  });
 });
